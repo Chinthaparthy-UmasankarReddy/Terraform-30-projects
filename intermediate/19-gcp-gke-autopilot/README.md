@@ -1,10 +1,11 @@
 
 # Terraform Project 19: GCP GKE Autopilot 
 
-[
-[
-[
-[
+[![Project-19](https://img.shields.io/badge/Project_19-GKE_Autopilot-4285F4?style=for-the-badge&logo=google-cloud&logoColor=white)](projects/advanced/19-gcp-gke-autopilot/)
+[![Autopilot](https://img.shields.io/badge/Autopilot-Fully_Managed-34A853?style=for-the-badge&logo=kubernetes&logoColor=white)](https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-overview)
+[![Workload-ID](https://img.shields.io/badge/Workload_ID-OIDC-4285F4?style=for-the-badge&logo=security&logoColor=white)](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity)
+[![VPC-Native](https://img.shields.io/badge/VPC--Native-Alias_IP-1E90FF?style=for-the-badge&logo=networking&logoColor=white)](https://cloud.google.com/kubernetes-engine/docs/concepts/alias-ips)
+
 
 ## 🎯 Project Overview
 
@@ -373,3 +374,4 @@ gcloud artifacts repositories list --location=$(terraform output.region)
 
 
 **🎉 Multi-Cloud Kubernetes Complete: EKS (12) → AKS (18) → GKE (19)**
+
