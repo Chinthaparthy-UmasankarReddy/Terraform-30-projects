@@ -84,13 +84,13 @@ sudo apt-get update && sudo apt-get install terraform
 
 1. **Clone this repo**
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/Chinthaparthy-UmasankarReddy/Terraform-30-projects.git
 cd terraform-projects
 ```
 
 2. **Pick a project** (e.g., Project 1)
 ```bash
-cd projects/beginner/ec2-instance
+cd projects/beginner/01-single-ec2-instance-on-aws
 ```
 
 3. **Configure variables**
