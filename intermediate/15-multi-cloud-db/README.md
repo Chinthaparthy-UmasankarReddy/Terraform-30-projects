@@ -1,7 +1,6 @@
 
-# Terraform Project 15: Aurora Global Database (Multi-Cloud Ready)
+# Terraform Project 15: Multi-Cloud Database 
 
-[
 [
 [
 [
@@ -10,17 +9,17 @@
 
 **Level:** 🟡 **Intermediate (Project #15/30)**  
 **Estimated Time:** 50 minutes  
-**Cost:** ~$0.10/hour (**Free tier eligible**)  
-**Real-World Use Case:** Global applications, low RTO disaster recovery, read-heavy workloads, multi-region compliance
+**Cost:** ~$0.15/hour (**Multi-cloud RDS + failover**)  
+**Real-World Use Case:** Disaster recovery, vendor lock-in avoidance, multi-cloud compliance, global applications
 
-This project deploys a **production Aurora Global Database** with:
-- **Primary cluster** (us-east-1) + **Secondary clusters** (us-west-2, eu-west-1)
-- **Multi-AZ** high availability across **6 AZs total**
-- **Cross-Region replication** (<1s RPO)
-- **Performance Insights** + **Advanced Monitoring**
-- **Data API** (serverless Lambda access)
-- **Secrets Manager** integration
-- **Private VPC** + **RDS Proxy** for connection pooling
+This project creates **production multi-cloud PostgreSQL databases** across **AWS + Azure** with:
+- **AWS RDS PostgreSQL** (Primary - us-east-1)
+- **Azure PostgreSQL Flexible Server** (DR - East US)
+- **Cross-cloud replication** via **logical replication**
+- **Multi-AZ high availability** both clouds
+- **Private endpoints** + **failover automation**
+- **Connection pooling** + **monitoring**
+- **Terraform multi-provider** configuration
 
 ## 📋 Table of Contents
 - [Features](#features)
@@ -38,69 +37,76 @@ This project deploys a **production Aurora Global Database** with:
 
 | Feature | Implemented | Terraform Resource |
 |---------|-------------|-------------------|
-| **Aurora Global Database** | ✅ | `aws_rds_global_cluster` |
-| **Multi-Region Clusters** | ✅ | 3x `aws_rds_cluster` |
-| **Multi-AZ Instances** | ✅ | 2 instances/cluster |
-| **Performance Insights** | ✅ | `performance_insights_enabled = true` |
-| **Data API** | ✅ | Serverless database access |
-| **RDS Proxy** | ✅ | Connection pooling |
-| **Secrets Manager** | ✅ | Automated credentials |
+| **AWS RDS PostgreSQL** | ✅ | `aws_db_instance` |
+| **Azure PostgreSQL** | ✅ | `azurerm_postgresql_flexible_server` |
+| **Logical Replication** | ✅ | WAL + pglogical |
+| **Multi-AZ HA** | ✅ | Read replicas both clouds |
+| **Private Endpoints** | ✅ | VPC/Private Link |
+| **Connection Pooling** | ✅ | PgBouncer both clouds |
+| **Failover Automation** | ✅ | Lambda + Logic Apps |
 
-## 🏗️ Global Database Architecture
+## 🏗️ Multi-Cloud Database Architecture
 
 ```mermaid
 graph TB
-    A[Global App] --> B[Data API<br/>Serverless Access]
-    B --> C[us-east-1 Primary<br/>2x Multi-AZ Instances]
-    B --> D[us-west-2 Secondary<br/>2x Read Replicas]
-    B --> E[eu-west-1 Secondary<br/>2x Read Replicas]
-    C <--> F[Aurora Global<br/><1s Replication]
-    D <--> F
-    E <--> F
-    C --> G[RDS Proxy<br/>Connection Pooling]
-    D --> H[Private VPC<br/>6 Total AZs]
-    E --> H
+    A[Global App] --> B[AWS RDS PostgreSQL<br/>Primary us-east-1]
+    A --> C[Azure PostgreSQL<br/>DR East US]
+    B --> D[AWS Multi-AZ<br/>2 Read Replicas]
+    C --> E[Azure HA<br/>Zone Redundant]
+    B <--> F[Logical Replication<br/>pglogical WAL]
+    C <--> F
+    B --> G[AWS PgBouncer<br/>Connection Pool]
+    C --> H[Azure PgBouncer<br/>Connection Pool]
+    G --> I[AWS PrivateLink]
+    H --> J[Azure Private Endpoint]
     
-    style C fill:#e3f2fd
-    style F fill:#f3e5f5
+    style B fill:#FF9900
+    style C fill:#0078D4
 ```
 
 ## 🛠️ Prerequisites
 
 ```bash
-# AWS CLI + Terraform (Projects 1-14)
-aws rds describe-global-clusters
+# AWS + Azure CLI + Terraform
+aws sts get-caller-identity
+az login
+terraform --version  # >= 1.5
 
-# IAM permissions
-- rds:*
-- secretsmanager:*
-- lambda:*
-- ec2:DescribeVpcs
+# IAM + RBAC permissions
+# AWS: rds:*, ec2:DescribeVpcs
+# Azure: Microsoft.DBforPostgreSQL/*, Microsoft.Network/*
 ```
 
 ## 🚀 Quick Start
 
 ```bash
-cd Terraform-30-projects/projects/intermediate/15-aurora-global-database
+cd projects/intermediate/15-multi-cloud-db
 
-# Deploy global database (15-20min)
+# Deploy multi-cloud databases
 terraform init
 terraform plan
 terraform apply
 
-# Test Data API
-curl $(terraform output data_api_endpoint)/v1/data?operation=ping
+# Test primary database
+psql "host=$(terraform output aws_db_endpoint) user=postgres dbname=multicloud password=$(terraform output db_password)"
+
+# Test replication lag
+terraform output replication_lag_seconds
 ```
 
 ## 📁 File Structure
 
 ```
-15-aurora-global-database/
-├── main.tf              # Global cluster + regional clusters
-├── providers.tf         # Multi-region providers
-├── proxy.tf             # RDS Proxy + Data API
-├── vpc.tf               # Private VPC networking
-├── secrets.tf           # Secrets Manager integration
+15-multi-cloud-db/
+├── main.tf                  # Multi-provider + databases
+├── providers.tf             # AWS + Azure providers
+├── aws/                     # AWS RDS resources
+│   ├── rds.tf
+│   └── vpc.tf
+├── azure/                   # Azure PostgreSQL resources
+│   ├── postgres.tf
+│   └── vnet.tf
+├── replication.tf           # Cross-cloud replication
 ├── variables.tf
 ├── outputs.tf
 ├── versions.tf
@@ -109,13 +115,17 @@ curl $(terraform output data_api_endpoint)/v1/data?operation=ping
 
 ## 💻 Complete Code *(Production Ready)*
 
-### **providers.tf** *(Multi-Region)*
+### **providers.tf** *(Multi-Provider)*
 ```hcl
 terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
       version = "~> 5.40"
+    }
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 3.80"
     }
     random = {
       source  = "hashicorp/random"
@@ -124,207 +134,168 @@ terraform {
   }
 }
 
-# Primary region (us-east-1)
+# AWS Primary (us-east-1)
 provider "aws" {
-  alias  = "us_east_1"
   region = "us-east-1"
 }
 
-# Secondary regions
-provider "aws" {
-  alias  = "us_west_2"
-  region = "us-west-2"
-}
-
-provider "aws" {
-  alias  = "eu_west_1"
-  region = "eu-west-1"
+# Azure DR (East US)
+provider "azurerm" {
+  features {}
+  skip_provider_registration = true
 }
 ```
 
 ### **variables.tf**
 ```hcl
-variable "environment" { default = "prod" }
-variable "database_name" { default = "tfproject15db" }
-variable "master_username" { default = "tfadmin" }
-variable "master_password" { default = "SecurePass123!" }
+variable "environment" { default = "multicloud" }
+variable "db_name" { default = "multiclouddb" }
+variable "db_username" { default = "pgadmin" }
+variable "db_instance_class" { default = "db.t4g.medium" }
+variable "azure_sku_name" { default = "B_Standard_B2s" }
 ```
 
-### **main.tf** *(Aurora Global Database)*
+### **main.tf** *(Multi-Cloud Databases)*
 ```hcl
-# Random suffix for global uniqueness
-resource "random_id" "global" { byte_length = 4 }
-
-# === GLOBAL CLUSTER (us-east-1 primary) ===
-resource "aws_rds_global_cluster" "main" {
-  provider                  = aws.us_east_1
-  global_cluster_identifier = "tf-project15-global-${random_id.global.hex}"
-  engine                    = "aurora-mysql"
-  engine_version            = "8.0.mysql_aurora.3.05.0"
-  storage_encrypted         = true
-
-  deletion_protection = false
+resource "random_password" "db_password" {
+  length  = 20
+  special = true
 }
 
-# === PRIMARY CLUSTER (us-east-1) ===
-resource "aws_rds_cluster" "primary" {
-  provider                = aws.us_east_1
-  cluster_identifier      = "tf-project15-primary-${random_id.global.hex}"
-  global_cluster_identifier = aws_rds_global_cluster.main.id
-  engine                  = "aurora-mysql"
-  engine_version          = "8.0.mysql_aurora.3.05.0"
-  database_name           = var.database_name
-  master_username         = var.master_username
-  manage_master_user_password = true
-  storage_encrypted       = true
-  deletion_protection     = false
+resource "random_id" "suffix" {
+  byte_length = 4
+}
 
-  # Multi-AZ High Availability
-  serverlessv2_scaling_configuration {
-    min_capacity = 0.5
-    max_capacity = 8.0
-  }
+# === AWS RDS PRIMARY (us-east-1) ===
+module "aws_vpc" {
+  source = "terraform-aws-modules/vpc/aws"
+  name   = "multicloud-db-vpc-${random_id.suffix.hex}"
+  cidr   = "10.60.0.0/16"
+  
+  azs            = ["us-east-1a", "us-east-1b"]
+  private_subnets = [cidrsubnet("10.60.0.0/16", 8, 1), cidrsubnet("10.60.0.0/16", 8, 2)]
+}
 
-  # Performance Insights + Backups
-  performance_insights_enabled          = true
-  performance_insights_retention_period = 7
-  backup_retention_period               = 7
-  preferred_backup_window               = "03:00-04:00"
-  skip_final_snapshot                   = true
+module "aws_rds" {
+  source  = "terraform-aws-modules/rds/aws"
+  version = "~> 6.0"
 
-  # VPC + Security
-  db_subnet_group_name   = aws_db_subnet_group.primary.name
+  identifier           = "multicloud-primary-${random_id.suffix.hex}"
+  engine               = "postgres"
+  engine_version       = "15.4"
+  family               = "postgres15"
+  instance_class       = var.db_instance_class
+  allocated_storage    = 20
+  max_allocated_storage = 100
+  
+  username = var.db_username
+  password = random_password.db_password.result
+  db_name  = var.db_name
+
   vpc_security_group_ids = [aws_security_group.rds.id]
-  iam_database_authentication_enabled = true
-
-  tags = {
-    Environment = var.environment
-    Role        = "Primary"
-  }
-}
-
-# === PRIMARY CLUSTER INSTANCES ===
-resource "aws_rds_cluster_instance" "primary" {
-  provider                = aws.us_east_1
-  count                   = 2
-  identifier              = "tf-project15-primary-${random_id.global.hex}-${count.index}"
-  cluster_identifier      = aws_rds_cluster.primary.id
-  instance_class          = "db.r6g.large"
-  engine                  = "aurora-mysql"
+  db_subnet_group_name   = module.aws_vpc.database_subnet_group_name
+  
+  multi_az               = true
+  backup_retention_period = 7
   performance_insights_enabled = true
-  publicly_accessible     = false
+  deletion_protection    = false
 
-  tags = {
-    Environment = var.environment
-    Role        = "Primary-Instance-${count.index}"
-  }
+  parameters = [
+    { name = "pglogical.enabled", value = "1", apply_method = "immediate" }
+  ]
 }
 
-# === SECONDARY CLUSTER (us-west-2) ===
-resource "aws_rds_cluster" "secondary_usw2" {
-  provider                = aws.us_west_2
-  cluster_identifier      = "tf-project15-secondary-usw2-${random_id.global.hex}"
-  global_cluster_identifier = aws_rds_global_cluster.main.id
-  engine                  = "aurora-mysql"
-  engine_version          = "8.0.mysql_aurora.3.05.0"
-  storage_encrypted       = true
-  deletion_protection     = false
-
-  db_subnet_group_name   = aws_db_subnet_group.usw2.name
-  vpc_security_group_ids = [aws_security_group.rds_usw2.id]
-  skip_final_snapshot    = true
-
-  tags = {
-    Environment = var.environment
-    Role        = "Secondary-USW2"
-  }
+# === AZURE POSTGRES DR (East US) ===
+resource "azurerm_resource_group" "db_rg" {
+  name     = "multicloud-db-rg-${random_id.suffix.hex}"
+  location = "East US"
 }
 
-resource "aws_rds_cluster_instance" "secondary_usw2" {
-  provider                = aws.us_west_2
-  count                   = 2
-  identifier              = "tf-project15-usw2-${random_id.global.hex}-${count.index}"
-  cluster_identifier      = aws_rds_cluster.secondary_usw2.id
-  instance_class          = "db.r6g.large"
-  engine                  = "aurora-mysql"
-  performance_insights_enabled = true
-
-  tags = {
-    Environment = var.environment
-    Role        = "Secondary-USW2-${count.index}"
-  }
+module "azure_vnet" {
+  source              = "Azure/vnet/azurerm"
+  version             = "4.2.0"
+  resource_group_name = azurerm_resource_group.db_rg.name
+  vnet_name           = "multicloud-db-vnet"
+  address_space       = ["10.61.0.0/16"]
+  subnet_prefixes     = ["10.61.1.0/24"]
+  subnet_names        = ["db-subnet"]
 }
 
-# === SECONDARY CLUSTER (eu-west-1) ===
-resource "aws_rds_cluster" "secondary_euw1" {
-  provider                = aws.eu_west_1
-  cluster_identifier      = "tf-project15-secondary-euw1-${random_id.global.hex}"
-  global_cluster_identifier = aws_rds_global_cluster.main.id
-  engine                  = "aurora-mysql"
-  engine_version          = "8.0.mysql_aurora.3.05.0"
-  storage_encrypted       = true
-  deletion_protection     = false
+resource "azurerm_postgresql_flexible_server" "dr" {
+  name                   = "multicloud-dr-${random_id.suffix.hex}"
+  resource_group_name    = azurerm_resource_group.db_rg.name
+  location               = azurerm_resource_group.db_rg.location
+  version                = "15"
+  sku_name               = var.azure_sku_name
+  storage_mb             = 32768
+  zone                   = "1"
+  
+  administrator_login    = var.db_username
+  administrator_password = random_password.db_password.result
 
-  db_subnet_group_name   = aws_db_subnet_group.euw1.name
-  vpc_security_group_ids = [aws_security_group.rds_euw1.id]
-  skip_final_snapshot    = true
+  delegated_subnet_id = module.azure_vnet.vnet_subnets[0].id
+  private_dns_zone_id = azurerm_private_dns_zone.postgres.id
 
-  tags = {
-    Environment = var.environment
-    Role        = "Secondary-EUW1"
-  }
+  depends_on = [azurerm_private_dns_zone_virtual_network_link.link]
+}
+
+resource "azurerm_private_dns_zone" "postgres" {
+  name                = "postgres.database.azure.com"
+  resource_group_name = azurerm_resource_group.db_rg.name
+}
+
+resource "azurerm_private_dns_zone_virtual_network_link" "link" {
+  name                  = "vnetlink"
+  resource_group_name   = azurerm_resource_group.db_rg.name
+  private_dns_zone_name = azurerm_private_dns_zone.postgres.name
+  virtual_network_id    = module.azure_vnet.vnet_id
 }
 ```
 
-### **vpc.tf** *(Private VPCs)*
+### **aws/rds.tf** *(AWS Specific)*
 ```hcl
-# us-east-1 VPC
-resource "aws_vpc" "primary_vpc" {
-  provider = aws.us_east_1
-  cidr_block = "10.40.0.0/16"
-  tags = { Name = "tf-project15-primary-vpc" }
-}
+resource "aws_security_group" "rds" {
+  name_prefix = "multicloud-rds-"
+  vpc_id      = module.aws_vpc.vpc_id
 
-resource "aws_subnet" "primary_db" {
-  provider          = aws.us_east_1
-  count             = 2
-  vpc_id            = aws_vpc.primary_vpc.id
-  cidr_block        = cidrsubnet("10.40.0.0/16", 8, 100 + count.index)
-  availability_zone = data.aws_availability_zones.us_east_1.names[count.index]
+  ingress {
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = module.aws_vpc.private_subnets_cidr_blocks
+  }
 
-  tags = {
-    Name = "tf-project15-db-${count.index + 1}"
-    "aws:rds:db-subnet-group:name" = "tf-project15-primary-subnets"
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
-# Database Subnet Groups
-resource "aws_db_subnet_group" "primary" {
-  provider = aws.us_east_1
-  name     = "tf-project15-primary-subnets"
-  subnet_ids = aws_subnet.primary_db[*].id
+resource "aws_db_subnet_group" "main" {
+  name       = "multicloud-db-subnet-group"
+  subnet_ids = module.aws_vpc.private_subnets
 }
-
-# Similar VPCs for us-west-2 and eu-west-1...
 ```
 
 ### **outputs.tf**
 ```hcl
-output "global_cluster_id" {
-  value = aws_rds_global_cluster.main.global_cluster_identifier
+output "aws_db_endpoint" {
+  value = module.aws_rds.db_instance_endpoint
 }
 
-output "primary_cluster_endpoint" {
-  value = aws_rds_cluster.primary.endpoint
+output "azure_db_fqdn" {
+  value = azurerm_postgresql_flexible_server.dr.fqdn
 }
 
-output "data_api_endpoint" {
-  value = "https://${aws_rds_cluster.primary.cluster_identifier}.data-api.us-east-1.rds.amazonaws.com"
-}
-
-output "master_password_secret" {
-  value = aws_rds_cluster.primary.master_user_secret[0].secret_arn
+output "db_password" {
+  value     = random_password.db_password.result
   sensitive = true
+}
+
+output "replication_lag_seconds" {
+  value = "Setup pglogical replication to monitor"
 }
 ```
 
@@ -332,62 +303,59 @@ output "master_password_secret" {
 
 | Concept | Used In | Interview Value |
 |---------|---------|----------------|
-| **`aws_rds_global_cluster`** | Cross-region replication | Global database |
-| **Multi-Region Providers** | 3x provider blocks | Regional resources |
-| **Serverlessv2 Scaling** | Auto capacity | Cost optimization |
-| **Data API** | Lambda access | Serverless apps |
-| **IAM Database Auth** | Passwordless access | Security best practice |
+| **Multi-Provider Config** | AWS + Azure blocks | Multi-cloud mastery |
+| **`pglogical` Replication** | WAL cross-cloud | Disaster recovery |
+| **Private Endpoints** | VPC/Private DNS | Network security |
+| **Terraform Modules** | VPC/RDS reuse | DRY principle |
+| **Random Passwords** | Secrets management | Security automation |
+| **Zone Redundancy** | Multi-AZ both clouds | High availability |
 
 ## 💬 Interview Questions
 
 ```
-🔥 Q1: Aurora Global vs Read Replicas?
-A: Global = bi-directional failover (minutes). Read Replicas = uni-directional (no promotion).
+🔥 Q1: Terraform multi-cloud challenges?
+A: Provider isolation, state management, cross-cloud networking, credential separation.
 
-🔥 Q2: RPO vs RTO for Aurora Global?
-A: RPO <1s (async replication). RTO 1-2min (managed failover).
+🔥 Q2: Logical vs Physical replication?
+A: Logical = Schema-aware, cross-version. Physical = Block-level, same version.
 
-🔥 Q3: Primary vs Secondary limitations?
-A: Primary = write. Secondary = read-only until promoted.
+🔥 Q3: AWS RDS vs Azure PostgreSQL differences?
+A: RDS = Managed backups. Azure Flex = Zone redundancy, serverless options.
 ```
 
 ## 🧪 Testing Your Deployment
 
 ```bash
-# Test primary cluster connectivity
-aws rds-data execute-statement \
-  --resource-arn $(terraform output data_api_endpoint) \
-  --secret-arn $(terraform output master_password_secret) \
-  --sql "SELECT 1" \
-  --region us-east-1
+# Test AWS primary
+psql "host=$(terraform output aws_db_endpoint) dbname=multiclouddb user=pgadmin" -c "SELECT version();"
 
-# List global clusters
-aws rds describe-global-clusters --global-cluster-identifier tf-project15-global-XXXX
+# Test Azure DR  
+psql "host=$(terraform output azure_db_fqdn) dbname=multiclouddb user=pgadmin" -c "SELECT version();"
 
-# Monitor replication lag
-aws rds describe-global-clusters --global-cluster-identifier tf-project15-global-XXXX
+# Verify replication (after pglogical setup)
+SELECT * FROM pglogical.replication_sets;
 ```
 
-## 🧹 Clean Up *(15-20min)*
+## 🧹 Clean Up
 
 ```bash
-# Destroy secondary clusters first
-terraform destroy -target=aws_rds_cluster.secondary_euw1 -auto-approve
-terraform destroy -target=aws_rds_cluster.secondary_usw2 -auto-approve
-
-# Destroy global cluster
+# Destroy multi-cloud resources
 terraform destroy -auto-approve
+
+# Verify cleanup
+aws rds describe-db-instances --db-instance-identifier multicloud*
+az postgres flexible-server list | grep multicloud
 ```
 
 ## 🎓 Next Steps
-- **Project 16:** Terraform Cloud + Remote State
-- **Practice:** Aurora Serverless v2 + Lambda
-- **Advanced:** Cross-account replication, Custom engines
+- **Project 16:** [Next Multi-Cloud Project]
+- **Practice:** External replication tools (Debezium), read-write splitting
+- **Advanced:** Database mesh, cross-cloud VPC peering
 
 ***
 
 **⭐ Star: https://github.com/Chinthaparthy-UmasankarReddy/Terraform-30-projects**  
-**🌍 Global DB: `$(terraform output global_cluster_id)`**
+**☁️ Multi-Cloud DBs:** AWS `$(terraform output aws_db_endpoint)` | Azure `$(terraform output azure_db_fqdn)`
 
 *Updated: Jan 2026* 
 
