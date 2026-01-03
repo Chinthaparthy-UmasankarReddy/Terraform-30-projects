@@ -1,8 +1,10 @@
 
 # Terraform Project 9: GCP Compute Instance
 
-[
-[
+[![Project-9](https://img.shields.io/badge/Project_9-GCP_Compute-4285F4?style=for-the-badge&logo=google-cloud&logoColor=white)](projects/beginner/09-gcp-compute-instance/)
+[![Always-Free](https://img.shields.io/badge/Always-Free-brightgreen?style=for-the-badge&logo=google-cloud&logoColor=white)](projects/beginner/09-gcp-compute-instance/)
+[![Time](https://img.shields.io/badge/Time-25min-blue?style=flat&logo=clock&logoColor=white)](projects/beginner/09-gcp-compute-instance/)
+
 
 ## 🎯 Project Overview
 
@@ -444,6 +446,7 @@ MIT License - Free for learning/portfolio
 **🔐 SSH: `ssh -i gcp-key.pem ubuntu@$(terraform output public_ip)`**
 
 *Updated: Jan 2026* ✅ 
+
 
 
 
