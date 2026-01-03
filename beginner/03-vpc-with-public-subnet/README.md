@@ -1,8 +1,10 @@
 
 # Terraform Project 3: VPC with Public Subnet
 
-[
-[
+[![Project-3](https://img.shields.io/badge/Project_3-VPC_Networking-FF9900?style=for-the-badge&logo=amazon-vpc&logoColor=white)](projects/beginner/03-vpc-public-subnet/)
+[![Free](https://img.shields.io/badge/Cost-Free-brightgreen?style=for-the-badge&logo=money-off&logoColor=white)](projects/beginner/03-vpc-public-subnet/)
+[![Time](https://img.shields.io/badge/Time-25min-blue?style=flat&logo=clock&logoColor=white)](projects/beginner/03-vpc-public-subnet/)
+
 
 ## 🎯 Project Overview
 
@@ -410,6 +412,7 @@ MIT License - Free for learning/portfolio
 **🐛 Issues: [Create Issue](https://github.com/Chinthaparthy-UmasankarReddy/Terraform-30-projects/issues/new)**
 
 *Updated: Jan 2026* 
+
 
 
 
