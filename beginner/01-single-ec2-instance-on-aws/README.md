@@ -1,7 +1,9 @@
 # Terraform Project 1: Single EC2 Instance on AWS
 
-[
-[
+[![Project-1](https://img.shields.io/badge/Project_1-AWS_EC2-FF9900?style=for-the-badge&logo=amazon-ec2&logoColor=white)](projects/beginner/01-single-ec2-instance-on-aws/)
+[![Cost](https://img.shields.io/badge/Cost-%240.02%2Fhr-green?style=flat&logo=amazon-aws&logoColor=white)](projects/beginner/01-single-ec2-instance-on-aws/)
+[![Time](https://img.shields.io/badge/Time-30min-blue?style=flat&logo=clock&logoColor=white)](projects/beginner/01-single-ec2-instance-on-aws/)
+
 
 ## 🎯 Project Overview
 
@@ -344,6 +346,7 @@ MIT License - Free for learning/portfolio
 
 
 *Last Updated: Jan 2026*
+
 
 
 
