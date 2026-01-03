@@ -1,9 +1,11 @@
 
 # Terraform Project 11: Multi-Tier VPC (AWS) - **Intermediate**
 
-[
-[
-[
+[![Project-11](https://img.shields.io/badge/Project_11-Multi--Tier_VPC-1E90FF?style=for-the-badge&logo=amazon-aws&logoColor=white)](projects/intermediate/11-multi-tier-vpc/)
+[![VPC](https://img.shields.io/badge/VPC-3--Tier_Architecture-228B22?style=for-the-badge&logo=amazon-aws&logoColor=white)](https://docs.aws.amazon.com/vpc/latest/userguide/)
+[![ALB](https://img.shields.io/badge/ALB-High_Availability-FF4500?style=for-the-badge&logo=amazon-aws&logoColor=white)](https://aws.amazon.com/elasticloadbalancing/application-load-balancer/)
+[![Multi-AZ](https://img.shields.io/badge/Multi--AZ-Production_Ready-32CD32?style=for-the-badge&logo=amazon-aws&logoColor=white)](https://docs.aws.amazon.com/whitepapers/latest/aws-risk-adjustment/ha.html)
+
 
 ## 🎯 Project Overview
 
@@ -453,13 +455,7 @@ terraform destroy -auto-approve
 *Updated: Jan 2026* ✅ 
 
 
-[1](https://projects.prodevopsguytech.com/blog/DevOps-Project-11)
-[2](https://www.projecteleven.com)
-[3](https://www.hashicorp.com/en/blog/hashicorp-terraform-0-11)
-[4](https://www.project11.com)
-[5](https://dev.to/aws-builders/how-i-built-my-terraform-portfolio-projects-repos-and-lessons-learned-2pa8)
-[6](https://www.youtube.com/watch?v=FPthcRYk2Io)
-[7](https://developer.hashicorp.com/terraform/install)
-[8](https://www.imdb.com/title/tt12244778/)
-[9](https://github.com/ozbillwang/terraform-best-practices/blob/master/README.0.11.md)
-[10](https://www.hulu.com/series/project-11-f8ae81e3-9c3c-483f-89d7-eca47cb88349)
+
+
+
+
