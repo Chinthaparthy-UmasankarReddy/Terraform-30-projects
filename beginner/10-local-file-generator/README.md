@@ -1,8 +1,10 @@
 
 # Terraform Project 10: Local File Generator
 
-[
-[
+[![Project-10](https://img.shields.io/badge/Project_10-Local_Files-90EE90?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUyIiBoZWlnaHQ9IjE2MCIgdmlld0JveD0iMCAwIDE1MiAxNjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTIiIGhlaWdodD0iMTYwIiBmaWxsPSIjOUU1RTQyIi8+CjxwYXRoIGQ9Ik0xNCAxNDBIMTUyVjE2MEgxNFYxNDBaIiBmaWxsPSIjN0RCNzQ4Ii8+Cjwvc3ZnPgo=)](projects/beginner/10-local-file-generator/)
+[![Cost](https://img.shields.io/badge/Cost-%240-00FF00?style=for-the-badge&logo=money-off&logoColor=white)](projects/beginner/10-local-file-generator/)
+[![Time](https://img.shields.io/badge/Time-15min-blue?style=flat&logo=clock&logoColor=white)](projects/beginner/10-local-file-generator/)
+
 
 ## 🎯 Project Overview
 
@@ -442,6 +444,7 @@ MIT License - Free for learning/portfolio
 **🧪 Test: `terraform apply && ls generated-configs/`**
 
 *Updated: Jan 2026* ✅ 
+
 
 
 
