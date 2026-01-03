@@ -1,8 +1,10 @@
+
 # Terraform Project 5: Static Website on S3 + CloudFront
 
-[
-[
-[
+[![Project-5](https://img.shields.io/badge/Project_5-CloudFront_CDN-FF9900?style=for-the-badge&logo=amazon-cloudfront&logoColor=white)](projects/beginner/05-static-website-cloudfront/)
+[![Cost](https://img.shields.io/badge/Cost-%240.01%2Fmo-green?style=flat&logo=amazon-aws&logoColor=white)](projects/beginner/05-static-website-cloudfront/)
+[![Time](https://img.shields.io/badge/Time-30min-blue?style=flat&logo=clock&logoColor=white)](projects/beginner/05-static-website-cloudfront/)
+
 
 ## 🎯 Project Overview
 
@@ -396,6 +398,7 @@ MIT License - Free for learning/portfolio
 **🌐 Live Demo: $(terraform output cloudfront_url)**
 
 *Updated: Jan 2026* 
+
 
 
 
