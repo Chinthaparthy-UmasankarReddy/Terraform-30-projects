@@ -1,9 +1,11 @@
 
 # Terraform Project 16: GitHub Repo with Actions 
 
-[
-[
-[
+[![Project-16](https://img.shields.io/badge/Project_16-GitHub_Actions-2088FF?style=for-the-badge&logo=github&logoColor=white)](projects/intermediate/16-github-actions/)
+[![CI/CD](https://img.shields.io/badge/CI/CD-Automated-00D4AA?style=for-the-badge&logo=github-actions&logoColor=white)](https://docs.github.com/en/actions)
+[![OIDC](https://img.shields.io/badge/OIDC-Secure_Secrets-FF6B35?style=for-the-badge&logo=security&logoColor=white)](https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/about-security-hardening-with-openid-connect)
+[![Branch-Protect](https://img.shields.io/badge/Branch_Protection-v3-32CD32?style=for-the-badge&logo=lock&logoColor=white)](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/about-protected-branches)
+
 
 ## 🎯 Project Overview
 
@@ -347,6 +349,7 @@ gh repo delete $(terraform output.repository_url | sed 's|https://github.com/||'
 **⚙️ Actions:** `$(terraform output.actions_url)`
 
 *Updated: Jan 2026*
+
 
 
 
