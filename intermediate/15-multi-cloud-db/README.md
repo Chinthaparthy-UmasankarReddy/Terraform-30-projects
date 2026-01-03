@@ -1,9 +1,11 @@
 
 # Terraform Project 15: Multi-Cloud Database 
 
-[
-[
-[
+[![Project-15](https://img.shields.io/badge/Project_15-Multi--Cloud_DB-9370DB?style=for-the-badge&logo=postgresql&logoColor=white)](projects/intermediate/15-multi-cloud-db/)
+[![Global](https://img.shields.io/badge/Global-Replication-FF1493?style=for-the-badge&logo=globe&logoColor=white)](https://aws.amazon.com/rds/multi-az/)
+[![pglogical](https://img.shields.io/badge/pglogical-Logical_Replication-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://docs.pglogical.com/)
+[![Private-Link](https://img.shields.io/badge/Private_Link-Secure-228B22?style=for-the-badge&logo=security&logoColor=white)](https://docs.aws.amazon.com/vpc/latest/privatelink/)
+
 
 ## 🎯 Project Overview
 
@@ -358,6 +360,7 @@ az postgres flexible-server list | grep multicloud
 **☁️ Multi-Cloud DBs:** AWS `$(terraform output aws_db_endpoint)` | Azure `$(terraform output azure_db_fqdn)`
 
 *Updated: Jan 2026* 
+
 
 
 
