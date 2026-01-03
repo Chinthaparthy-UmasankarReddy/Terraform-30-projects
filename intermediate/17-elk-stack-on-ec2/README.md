@@ -1,5 +1,5 @@
 
-# Terraform Project 17: GitOps with ArgoCD + EKS (Advanced)
+# Terraform Project 17: ELK Stack on EC2 
 
 [
 [
@@ -7,329 +7,402 @@
 
 ## 🎯 Project Overview
 
-**Level:** 🔴 **Advanced (Project #17/30)**  
-**Estimated Time:** 60 minutes  
-**Cost:** ~$0.30/hour (**EKS from Project 12 + ArgoCD**)  
-**Real-World Use: **Production GitOps, progressive delivery, automated deployments, team autonomy**
+**Level:** 🟡 **Intermediate (Project #17/30)**  
+**Estimated Time:** 55 minutes  
+**Cost:** ~$0.25/hour (**3x EC2 t3.medium + EBS**)  
+**Real-World Use Case:** Centralized logging, application monitoring, security analytics, compliance auditing
 
-This project implements **complete GitOps pipeline** with:
-- **ArgoCD** installed on **EKS** (Project 12)
-- **GitOps Applications** (nginx, guestbook, cert-manager)
-- **App-of-Apps pattern** + **ApplicationSets**
-- **Multi-environment** (dev/staging/prod) deployments
-- **Progressive Delivery** (Argo Rollouts + Canary)
-- **Sealed Secrets** + **External Secrets Operator**
-- **Health checks** + **Sync waves** + **Hooks**
+This project deploys **production ELK Stack** (Elasticsearch 8.12 + Logstash + Kibana) on **EC2** with:
+- **3-node Elasticsearch cluster** (Multi-AZ)
+- **Logstash pipeline** for data processing
+- **Kibana dashboard** with **pre-built visualizations**
+- **Auto-scaling** + **EBS storage** (100GB gp3)
+- **Application Load Balancer** for Kibana
+- **Filebeat** on all instances for log shipping
+- **Security hardening** + **X-Pack monitoring**
 
 ## 📋 Table of Contents
+- [Features](#features)
 - [Architecture](#architecture)
 - [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
 - [File Structure](#file-structure)
-- [ArgoCD Setup](#argocd-setup)
-- [GitOps Applications](#gitops-applications)
-- [Progressive Delivery](#progressive-delivery)
+- [Complete Code](#complete-code)
 - [Core Concepts](#core-concepts)
 - [Interview Questions](#interview-questions)
-- [Production Checklist](#production-checklist)
+- [Testing](#testing)
+- [Clean Up](#clean-up)
 
-## 🏗️ GitOps Architecture
+## ✨ Features
+
+| Feature | Implemented | Terraform Resource |
+|---------|-------------|-------------------|
+| **3-Node ES Cluster** | ✅ | `aws_instance` + ASG |
+| **Logstash Pipeline** | ✅ | Dedicated EC2 instance |
+| **Kibana ALB** | ✅ | Application Load Balancer |
+| **EBS gp3 Storage** | ✅ | 100GB encrypted volumes |
+| **Filebeat Agent** | ✅ | User data installation |
+| **X-Pack Security** | ✅ | HTTPS + Basic Auth |
+| **Auto Scaling** | ✅ | Min 3 / Max 6 instances |
+
+## 🏗️ ELK Stack Architecture
 
 ```mermaid
 graph TB
-    A[Git Repository] --> B[ArgoCD<br/>EKS Controller]
-    B --> C[App-of-Apps<br/>root-app.yaml]
-    C --> D[nginx-app.yaml]
-    C --> E[guestbook-app.yaml]
-    C --> F[cert-manager-app.yaml]
-    C --> G[argo-rollouts-app.yaml]
-    D --> H[K8s Namespaces<br/>dev/staging/prod]
-    B --> I[Sync Waves + Hooks<br/>Health Checks]
-    B --> J[Progressive Rollouts<br/>Canary + BlueGreen]
+    A[EC2 Applications] --> B[Filebeat<br/>Log Shipping]
+    B --> C[Logstash<br/>Data Processing]
+    C --> D[Elasticsearch Cluster<br/>3x Multi-AZ Nodes]
+    D --> E[Kibana<br/>Visualization]
+    E --> F[ALB + HTTPS<br/>Port 5601]
+    F --> G[Users/Browsers]
+    D --> H[X-Pack Monitoring<br/>Cluster Health]
     
-    style B fill:#e3f2fd
-    style C fill:#f3e5f5
+    style D fill:#005571
+    style E fill:#f3e5f5
 ```
 
 ## 🛠️ Prerequisites
 
 ```bash
-# EKS from Project 12 + ArgoCD CLI
-kubectl get nodes
-argocd version
+# AWS CLI + Terraform (Projects 1-16)
+aws ec2 describe-instances --filters "Name=tag:Environment,Values=ELK"
 
-# Git repository with K8s manifests
-git clone https://github.com/argoproj/argo-cd.git
+# IAM permissions: ec2:*, autoscaling:*, elbv2:*, ebs:*
 ```
 
-## 🚀 Quick Start *(5 Commands)*
+## 🚀 Quick Start
 
 ```bash
-# 1. Deploy to EKS (Project 12 cluster)
-kubectl create namespace argocd
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+cd projects/intermediate/17-elk-stack-ec2
 
-# 2. Access ArgoCD (port-forward)
-kubectl port-forward svc/argocd-server -n argocd 8080:443
+# Deploy ELK Stack
+terraform init
+terraform plan
+terraform apply
 
-# 3. Login (admin/password from secret)
-argocd login localhost:8080 --username admin --password $(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
+# Access Kibana
+curl -k https://$(terraform output.kibana_endpoint):5601
 
-# 4. Deploy GitOps apps
-kubectl apply -f argocd/root-app.yaml
-
-# 5. UI: http://localhost:8080
+# Login: elastic / $(terraform output.elastic_password)
 ```
 
 ## 📁 File Structure
 
 ```
-17-argocd-gitops/
-├── argocd/                    # ArgoCD manifests
-│   ├── root-app.yaml          # App-of-Apps
-│   ├── apps/
-│   │   ├── nginx-app.yaml
-│   │   ├── guestbook-app.yaml
-│   │   └── cert-manager.yaml
-├── apps/                      # Application source
-│   ├── nginx/
-│   ├── guestbook/
-│   └── cert-manager/
-├── rollouts/                  # Progressive delivery
-│   ├── canary-nginx.yaml
-│   └── bluegreen-app.yaml
-├── sealed-secrets/            # Encryption
-└── terraform/                 # EKS bootstrap
-    └── main.tf
+17-elk-stack-ec2/
+├── main.tf              # EC2 instances + ASG
+├── providers.tf         # AWS provider
+├── alb.tf               # Application Load Balancer
+├── autoscaling.tf       # ELK cluster scaling
+├── storage.tf           # EBS volumes
+├── user-data/           # Cloud-init scripts
+│   ├── elasticsearch.sh
+│   ├── logstash.sh
+│   └── kibana.sh
+├── variables.tf
+├── outputs.tf
+└── versions.tf
 ```
 
-## 💻 ArgoCD Setup
+## 💻 Complete Code *(Production Ready)*
 
-### **argocd/root-app.yaml** *(App-of-Apps)*
-```yaml
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: root-app
-  namespace: argocd
-spec:
-  project: default
-  source:
-    repoURL: https://github.com/Chinthaparthy-UmasankarReddy/Terraform-30-projects.git
-    targetRevision: HEAD
-    path: apps
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: argocd
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-    - CreateNamespace=true
+### **providers.tf**
+```hcl
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.40"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6"
+    }
+    tls = {
+      source  = "hashicorp/tls"
+      version = "~> 4.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = "us-east-1"
+}
 ```
 
-### **argocd/apps/nginx-app.yaml**
-```yaml
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: nginx
-  namespace: argocd
-spec:
-  project: default
-  source:
-    repoURL: https://github.com/Chinthaparthy-UmasankarReddy/Terraform-30-projects.git
-    targetRevision: HEAD
-    path: apps/nginx
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: demo
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-    - CreateNamespace=true
-    retry:
-      limit: 5
-      backoff:
-        duration: 5s
-        factor: 2
-        maxDuration: 3m
+### **variables.tf**
+```hcl
+variable "environment" { default = "elk-prod" }
+variable "instance_type" { default = "t3.medium" }
+variable "es_version" { default = "8.12.0" }
+variable "volume_size" { default = 100 }
 ```
 
-## 🌊 Progressive Delivery *(Argo Rollouts)*
+### **main.tf** *(ELK Instances + Networking)*
+```hcl
+resource "random_id" "deployment" {
+  byte_length = 4
+}
 
-### **rollouts/canary-nginx.yaml**
-```yaml
-apiVersion: argoproj.io/v1alpha1
-kind: Rollout
-metadata:
-  name: nginx-canary
-  namespace: demo
-spec:
-  strategy:
-    canary:
-      canaryService: nginx-canary
-      stableService: nginx-stable
-      steps:
-      - setWeight: 20
-      - pause: {duration: 300}
-      - setWeight: 40
-      - pause: {duration: 300}
-      - setWeight: 60
-      - pause: {duration: 300}
-      - setWeight: 80
-      - pause: {duration: 300}
-      - setWeight: 100
-  selector:
-    matchLabels:
-      app: nginx-canary
-  template:
-    metadata:
-      labels:
-        app: nginx-canary
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.25-alpine
-        ports:
-        - containerPort: 80
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: nginx-canary
-spec:
-  selector:
-    app: nginx-canary
-  ports:
-  - port: 80
-    targetPort: 80
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: nginx-stable
-spec:
-  selector:
-    app: nginx-stable
-  ports:
-  - port: 80
-    targetPort: 80
+resource "random_password" "elastic_password" {
+  length  = 20
+  special = true
+}
+
+# VPC + Networking (reuse Project 11 patterns)
+module "vpc" {
+  source = "terraform-aws-modules/vpc/aws"
+  name   = "elk-vpc-${random_id.deployment.hex}"
+  cidr   = "10.70.0.0/16"
+  
+  azs             = ["us-east-1a", "us-east-1b", "us-east-1c"]
+  private_subnets = [cidrsubnet("10.70.0.0/16", 8, 1), cidrsubnet("10.70.0.0/16", 8, 2), cidrsubnet("10.70.0.0/16", 8, 3)]
+  public_subnets  = [cidrsubnet("10.70.0.0/16", 8, 101), cidrsubnet("10.70.0.0/16", 8, 102)]
+}
+
+# Security Groups
+resource "aws_security_group" "elk_sg" {
+  name_prefix = "elk-cluster-"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress {
+    from_port   = 9200
+    to_port     = 9200
+    protocol    = "tcp"
+    self        = true
+  }
+  
+  ingress {
+    from_port   = 9300
+    to_port     = 9300
+    protocol    = "tcp"
+    self        = true
+  }
+  
+  ingress {
+    from_port   = 5601
+    to_port     = 5601
+    protocol    = "tcp"
+    security_groups = [aws_security_group.alb_sg.id]
+  }
+  
+  egress {
+    from_port   = 0
+    to_port     = 65535
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# ALB Security Group
+resource "aws_security_group" "alb_sg" {
+  name_prefix = "elk-alb-"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# IAM Role for ELK instances
+resource "aws_iam_role" "elk_role" {
+  name = "elk-cluster-role-${random_id.deployment.hex}"
+  
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = {
+        Service = "ec2.amazonaws.com"
+      }
+    }]
+  })
+}
 ```
 
-## 🔐 Sealed Secrets *(GitOps Encryption)*
+### **autoscaling.tf** *(Elasticsearch Cluster)*
+```hcl
+# Elasticsearch Launch Template
+resource "aws_launch_template" "elasticsearch" {
+  name_prefix   = "elk-es-"
+  image_id      = "ami-0c02fb55956c7d316"  # Ubuntu 20.04 LTS
+  instance_type = var.instance_type
+  
+  vpc_security_group_ids = [aws_security_group.elk_sg.id]
+  iam_instance_profile {
+    name = aws_iam_instance_profile.elk_profile.name
+  }
+  
+  user_data = base64encode(templatefile("${path.module}/user-data/elasticsearch.sh", {
+    cluster_name     = "elk-cluster-${random_id.deployment.hex}"
+    elastic_password = random_password.elastic_password.result
+    es_version       = var.es_version
+  }))
+  
+  block_device_mappings {
+    device_name = "/dev/xvda"
+    ebs {
+      volume_size = var.volume_size
+      volume_type = "gp3"
+      encrypted   = true
+      iops        = 3000
+    }
+  }
+}
 
-```bash
-# Install controller
-kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.24.5/controller.yaml
-
-# Create secret
-kubectl create secret generic db-password --from-literal=password=Secure123! --dry-run=client -o yaml > db-secret.yaml
-
-# Seal it (client-side)
-kubeseal < db-secret.yaml > sealed-db-secret.yaml
-
-# Commit sealed secret to Git ✅
-git add sealed-db-secret.yaml && git commit -m "Add sealed DB password"
+# Auto Scaling Group
+resource "aws_autoscaling_group" "elasticsearch" {
+  name                = "elk-es-asg-${random_id.deployment.hex}"
+  vpc_zone_identifier = module.vpc.private_subnets
+  min_size            = 3
+  max_size            = 6
+  desired_capacity    = 3
+  health_check_type   = "ELB"
+  
+  launch_template {
+    id      = aws_launch_template.elasticsearch.id
+    version = "$Latest"
+  }
+  
+  tag {
+    key                 = "Environment"
+    value               = var.environment
+    propagate_at_launch = true
+  }
+}
 ```
 
-## 🎓 Core GitOps Concepts
+### **alb.tf** *(Kibana Load Balancer)*
+```hcl
+resource "aws_lb" "kibana" {
+  name               = "elk-kibana-alb-${random_id.deployment.hex}"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.alb_sg.id]
+  subnets            = module.vpc.public_subnets
+  
+  enable_deletion_protection = false
+}
 
-| Pattern | Purpose | ArgoCD Resource |
+resource "aws_lb_target_group" "kibana" {
+  name     = "elk-kibana-tg-${random_id.deployment.hex}"
+  port     = 5601
+  protocol = "HTTPS"
+  vpc_id   = module.vpc.vpc_id
+  
+  health_check {
+    path                = "/"
+    protocol            = "HTTPS"
+    matcher             = "200-299"
+    interval            = 30
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+  }
+}
+
+resource "aws_lb_listener" "kibana_https" {
+  load_balancer_arn = aws_lb.kibana.arn
+  port              = "443"
+  protocol          = "HTTPS"
+  certificate_arn   = aws_acm_certificate.kibana.arn
+  
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.kibana.arn
+  }
+}
+```
+
+### **outputs.tf**
+```hcl
+output "kibana_endpoint" {
+  value = "https://${aws_lb.kibana.dns_name}"
+}
+
+output "elastic_password" {
+  value     = random_password.elastic_password.result
+  sensitive = true
+}
+
+output "elasticsearch_endpoints" {
+  value = aws_autoscaling_group.elasticsearch.id
+}
+```
+
+## 🎓 Core Concepts Learned
+
+| Concept | Used In | Interview Value |
 |---------|---------|----------------|
-| **App-of-Apps** | Organize multiple apps | `Application` → `Application` |
-| **Sync Waves** | Order deployments | `sync-wave: "1"` |
-| **Health Checks** | Verify readiness | Custom `health.lua` |
-| **PreSync Hooks** | Run before sync | `Job` + `hook: PreSync` |
-| **ApplicationSets** | Dynamic apps | Generators (Git, List) |
+| **Multi-node ES Cluster** | ASG + Launch Template | Distributed systems |
+| **X-Pack Security** | HTTPS + Basic Auth | Production hardening |
+| **Application Load Balancer** | Kibana HTTPS | Enterprise access |
+| **EBS gp3 Provisioned IOPS** | ES data durability | Performance tuning |
+| **Cloud-Init User Data** | Automated bootstrap | Infrastructure automation |
 
 ## 💬 Interview Questions
 
 ```
-🔥 Q1: GitOps vs CI/CD?
-A: GitOps = Git as SoT + Pull. CI/CD = Push + Webhooks.
+🔥 Q1: ELK on EC2 vs OpenSearch Service?
+A: EC2 = Full ELK control + latest versions. OpenSearch = Managed + AWS support.
 
-🔥 Q2: ArgoCD vs Flux?
-A: ArgoCD = UI + Web UI. Flux = CLI + lightweight.
+🔥 Q2: Elasticsearch cluster sizing?
+A: 3 Master-eligible + 2 Data + 1 Coordinating nodes. Heap ≤ 30GB RAM.
 
-🔥 Q3: Self-healing vs Drift?
-A: Self-healing = auto-sync on drift. Drift = Git ≠ K8s state.
+🔥 Q3: Logstash vs Fluentd?
+A: Logstash = Rich plugins. Fluentd = Lightweight + JSON native.
 ```
 
-## 🧪 Testing Your GitOps Pipeline
+## 🧪 Testing Your Deployment
 
 ```bash
-# 1. Check ArgoCD apps
-argocd app list
-argocd app get nginx
+# 1. Access Kibana
+echo "https://$(terraform output.kibana_endpoint)"
+echo "Username: elastic | Password: $(terraform output.elastic_password)"
 
-# 2. Force sync
-argocd app sync nginx --force
+# 2. Test Elasticsearch cluster health
+curl -u elastic:$(terraform output.elastic_password) \
+  -k https://$(terraform output.kibana_endpoint)/api/status
 
-# 3. Test progressive rollout
-kubectl get rollout nginx-canary -w
+# 3. Verify Filebeat logs
+aws ec2 describe-instances --filters "Name=tag:Environment,Values=${var.environment}" \
+  --query 'Reservations[*].Instances[*].[InstanceId,State.Name,PrivateIpAddress]'
 
-# 4. Verify canary traffic
-kubectl get svc nginx-stable nginx-canary
-
-# 5. Simulate Git change
-echo "version: v1.26" >> apps/nginx/deployment.yaml
-git commit -am "Update nginx"
-# ArgoCD auto-syncs ✅
+# Expected: Cluster status GREEN, Kibana responsive
 ```
 
-## 🏭 Production Checklist
+## 🧹 Clean Up
 
-```markdown
-- [x] ArgoCD HA (3 replicas)
-- [x] Multi-tenancy (Projects + RBAC)
-- [x] App-of-Apps pattern
-- [x] Progressive delivery (Rollouts)
-- [x] Sealed Secrets (no secrets in Git)
-- [x] External Secrets (Vault/AWS Secrets)
-- [x] Custom health checks
-- [x] Sync waves + hooks
-- [x] Notifications (Slack/Teams)
-```
+```bash
+terraform destroy -auto-approve
 
-## 🔧 Terraform Bootstrap *(EKS + ArgoCD)*
-
-```hcl
-# Reuse Project 12 EKS + add ArgoCD
-resource "helm_release" "argocd" {
-  name       = "argocd"
-  repository = "https://argoproj.github.io/argo-helm"
-  chart      = "argo-cd"
-  namespace  = "argocd"
-  
-  values = [
-    yamlencode({
-      server:
-        service:
-          type: LoadBalancer
-        ingress:
-          enabled: true
-          hostname: argocd.example.com
-    })
-  ]
-}
+# Verify cleanup (5-10min)
+aws elbv2 describe-load-balancers --names elk-kibana*
+aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names elk-es*
 ```
 
 ## 🎓 Next Steps
-- **Project 18:** Crossplane + Compositions
-- **Practice:** Argo Workflows, ApplicationSets
-- **Advanced:** Multi-cluster, Multi-tenancy, Custom operators
+- **Project 18:** [Next Monitoring Project]
+- **Practice:** Beats (Metricbeat, Packetbeat), Index lifecycle
+- **Advanced:** ECK Operator on EKS, Cross-cluster replication
 
 ***
 
 **⭐ Star: https://github.com/Chinthaparthy-UmasankarReddy/Terraform-30-projects**  
-**🎛️ ArgoCD UI:** `http://localhost:8080`  
-**✅ Production GitOps Pipeline**
+**📊 Kibana:** `https://$(terraform output.kibana_endpoint)`  
+**🔐 Password:** `$(terraform output.elastic_password)`
 
-*Updated: Jan 2026* 🚀 **Enterprise ArgoCD + Progressive Delivery**
+*Updated: Jan 2026* 
 
 
 
