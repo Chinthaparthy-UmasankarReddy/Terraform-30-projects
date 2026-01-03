@@ -1,5 +1,5 @@
 
-# Terraform Project 12: EKS Kubernetes Cluster (AWS)
+# Terraform Project 12: EKS Kubernetes Cluster (AWS) 
 
 [
 [
@@ -11,16 +11,16 @@
 **Level:** 🟡 **Intermediate (Project #12/30)**  
 **Estimated Time:** 60 minutes  
 **Cost:** ~$0.25/hour (2x t3.small nodes) **Free tier eligible**  
-**Real-World Use Case:** Microservices, container orchestration, CI/CD pipelines, production K8s
+**Real-World Use Case:** Microservices, container orchestration, production Kubernetes
 
 This project deploys a **production-ready EKS cluster** with:
 - **Managed EKS Control Plane** (v1.30)
-- **Self-managed Node Groups** (2x t3.small across 2 AZs)
-- **VPC + Private/Public Subnets** (from Project 11)
-- **IRSA (IAM Roles for Service Accounts)**
-- **Cluster Autoscaler** + **Load Balancer Controller**
-- **EBS CSI Driver** for persistent storage
-- **Complete K8s add-ons** (CoreDNS, kube-proxy)
+- **Self-managed Node Groups** (2 AZs, Auto Scaling)
+- **Complete VPC networking** (Public/Private subnets + NAT)
+- **IRSA IAM Roles for Service Accounts**
+- **EKS Add-ons** (EBS CSI, VPC CNI, CoreDNS)
+- **Production security hardening**
+- **kubectl-ready** deployment pipeline
 
 ## 📋 Table of Contents
 - [Features](#features)
@@ -28,88 +28,118 @@ This project deploys a **production-ready EKS cluster** with:
 - [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
 - [File Structure](#file-structure)
-- [Complete Code](#complete-code)
-- [Core Concepts](#core-concepts)
+- [Complete Working Code](#complete-working-code)
+- [Core Terraform Concepts](#core-terraform-concepts)
 - [Interview Questions](#interview-questions)
-- [Testing](#testing)
+- [Post-Deployment Testing](#post-deployment-testing)
 - [Clean Up](#clean-up)
 
 ## ✨ Features
 
 | Feature | Implemented | Terraform Resource |
 |---------|-------------|-------------------|
-| **EKS Cluster** | ✅ | `aws_eks_cluster` |
-| **Managed Node Groups** | ✅ | `aws_eks_node_group` |
-| **Fargate Profiles** | ✅ | `aws_eks_fargate_profile` |
-| **IRSA** | ✅ | `aws_iam_role` + OIDC |
-| **VPC CNI** | ✅ | EKS-optimized networking |
-| **EBS CSI** | ✅ | Persistent volumes |
-| **Load Balancer** | ✅ | AWS LB Controller |
+| **EKS Managed Cluster** | ✅ | `aws_eks_cluster` |
+| **Node Groups (ASG)** | ✅ | `aws_eks_node_group` |
+| **Private API Endpoint** | ✅ | `endpoint_private_access = true` |
+| **IRSA (OIDC Provider)** | ✅ | `aws_iam_role` + trust policy |
+| **EKS Add-ons** | ✅ | `aws_eks_addon` (CSI, CNI, DNS) |
+| **VPC + NAT Gateway** | ✅ | Complete networking |
+| **Security Hardening** | ✅ | Private-only worker nodes |
 
-## 🏗️ Architecture *(Production EKS)*
+## 🏗️ Production Architecture
 
 ```mermaid
 graph TB
-    A[Internet] --> B[Public Subnets<br/>ALB + Public ELB]
-    B --> C[EKS Control Plane<br/>Private API Endpoint]
-    C --> D[Private Subnets<br/>Worker Nodes t3.small]
-    C --> E[Fargate Pods<br/>Serverless workloads]
-    D --> F[EBS Volumes<br/>Persistent Storage]
-    D --> G[VPC Endpoints<br/>S3, ECR, Logs]
+    Internet[Internet] --> PublicSubnets[Public Subnets<br/>ALB/NAT Gateway]
+    PublicSubnets --> EKSControl[EKS Control Plane<br/>Private API Endpoint]
+    EKSControl --> PrivateSubnets[Private Subnets<br/>t3.small Worker Nodes]
+    PrivateSubnets --> EBS[EBS Persistent Volumes]
+    PrivateSubnets --> Services[CoreDNS, VPC CNI<br/>EBS CSI Driver]
     
-    style C fill:#e3f2fd
-    style D fill:#f3e5f5
+    style EKSControl fill:#e3f2fd
+    style PrivateSubnets fill:#f3e5f5
 ```
 
 ## 🛠️ Prerequisites
 
 ```bash
-# From Projects 1-11 + EKS CLI tools
-aws eks update-kubeconfig --name tf-project12-cluster
-kubectl version --client
-helm version
+# AWS CLI v2 + Terraform (from Projects 1-11)
+aws --version
+terraform --version
 
-# IAM permissions needed
-- eks:*
-- iam:CreateRole,AttachRolePolicy
-- ec2:Describe* (nodes)
+# kubectl + eksctl
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+sudo install kubectl /usr/local/bin/kubectl
+
+# IAM permissions
+eks:*, iam:Create*, ec2:Describe*, autoscaling:*
 ```
 
-## 🚀 Quick Start
+## 🚀 Quick Start *(5 Commands)*
 
 ```bash
 cd Terraform-30-projects/projects/intermediate/12-eks-kubernetes-cluster
 
-# Deploy EKS cluster
-terraform init
-terraform plan
-terraform apply
+# 1. Deploy EKS cluster
+terraform init && terraform apply
 
-# Update kubeconfig
-aws eks update-kubeconfig --name $(terraform output cluster_name)
+# 2. Configure kubectl
+aws eks update-kubeconfig --name $(terraform output cluster_name) --region us-east-1
 
-# Deploy sample app
-kubectl apply -f samples/nginx-deployment.yaml
+# 3. Verify cluster
+kubectl get nodes
+
+# 4. Deploy sample app
+kubectl apply -f samples/nginx-app.yaml
+
+# 5. Access app
+minikube tunnel  # or cloud LB IP
 ```
 
 ## 📁 File Structure
 
 ```
 12-eks-kubernetes-cluster/
-├── main.tf                   # EKS + VPC + IAM
-├── kubeconfig.tf             # kubectl config generation
-├── addons.tf                 # EKS add-ons
-├── variables.tf              # Cluster sizing
-├── outputs.tf                # kubeconfig, endpoints
-├── samples/                  # K8s manifests
-│   ├── nginx-deployment.yaml
+├── main.tf              # EKS cluster + VPC + networking
+├── iam.tf               # IRSA roles + policies
+├── addons.tf            # EKS managed add-ons
+├── variables.tf         # Cluster configuration
+├── outputs.tf           # kubeconfig + endpoints
+├── samples/             # Kubernetes manifests
+│   ├── nginx-app.yaml
 │   └── namespace.yaml
+├── user-data.sh         # Node bootstrap
 ├── versions.tf
-└── iam-policies/
-    └── amazonaws-eks-csi-driver-policy.json
+└── terraform.tfvars.example
 ```
 
-## 💻 Complete Code *(Production Ready)*
+## 💻 Complete Working Code
+
+### **variables.tf**
+```hcl
+variable "cluster_name" {
+  description = "EKS cluster name"
+  type        = string
+  default     = "tf-project12-cluster"
+}
+
+variable "cluster_version" {
+  description = "Kubernetes version"
+  type        = string
+  default     = "1.30"
+}
+
+variable "environment" {
+  type    = string
+  default = "prod"
+}
+
+variable "vpc_cidr" {
+  description = "VPC CIDR block"
+  type        = string
+  default     = "10.20.0.0/16"
+}
+```
 
 ### **versions.tf**
 ```hcl
@@ -120,99 +150,131 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.40"
     }
-    kubernetes = {
-      source  = "hashicorp/kubernetes"
-      version = "~> 2.30"
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6"
     }
-    helm = {
-      source  = "hashicorp/helm"
-      version = "~> 2.13"
+    tls = {
+      source  = "hashicorp/tls"
+      version = "~> 4.0"
     }
   }
 }
 ```
 
-### **variables.tf**
+### **main.tf** *(Core EKS Infrastructure)*
 ```hcl
-variable "cluster_name" { default = "tf-project12-cluster" }
-variable "cluster_version" { default = "1.30" }
-variable "vpc_cidr" { default = "10.20.0.0/16" }
-variable "environment" { default = "prod" }
-```
+provider "aws" {
+  region = "us-east-1"
+}
 
-### **main.tf** *(Complete EKS Stack)*
-```hcl
-provider "aws" { region = "us-east-1" }
+# Random identifier
+resource "random_id" "cluster" {
+  byte_length = 4
+}
 
-# Random suffix
-resource "random_id" "suffix" { byte_length = 4 }
+# VPC + Subnets (Multi-AZ)
+data "aws_availability_zones" "available" {}
 
-# VPC (reuse Project 11 pattern)
 resource "aws_vpc" "eks" {
   cidr_block           = var.vpc_cidr
   enable_dns_hostnames = true
   enable_dns_support   = true
-  tags = { Name = "${var.cluster_name}-vpc-${random_id.suffix.hex}" }
+
+  tags = {
+    Name = "${var.cluster_name}-vpc-${random_id.cluster.hex}"
+    "kubernetes.io/cluster/${var.cluster_name}" = "shared"
+  }
 }
 
-data "aws_availability_zones" "available" {}
-
-# Public Subnets
+# Public Subnets (ALB, NAT)
 resource "aws_subnet" "public" {
   count                   = 2
   vpc_id                  = aws_vpc.eks.id
-  cidr_block              = "10.20.${10 + count.index}.0/24"
+  cidr_block              = cidrsubnet(var.vpc_cidr, 8, 10 + count.index)
   availability_zone       = data.aws_availability_zones.available.names[count.index]
   map_public_ip_on_launch = true
+
+  tags = {
+    Name = "public-${count.index + 1}-${data.aws_availability_zones.available.names[count.index]}"
+    "kubernetes.io/role/elb" = "1"
+  }
 }
 
-# Private Subnets
+# Private Subnets (Worker Nodes)
 resource "aws_subnet" "private" {
   count             = 2
   vpc_id            = aws_vpc.eks.id
-  cidr_block        = "10.20.${110 + count.index}.0/24"
+  cidr_block        = cidrsubnet(var.vpc_cidr, 8, 110 + count.index)
   availability_zone = data.aws_availability_zones.available.names[count.index]
+
+  tags = {
+    Name = "private-${count.index + 1}-${data.aws_availability_zones.available.names[count.index]}"
+    "kubernetes.io/role/internal-elb" = "1"
+    "kubernetes.io/cluster/${var.cluster_name}" = "shared"
+  }
 }
 
-# Internet Gateway + NAT (simplified)
-resource "aws_internet_gateway" "igw" { vpc_id = aws_vpc.eks.id }
+# NAT Gateway for private subnet outbound
+resource "aws_eip" "nat" {
+  domain = "vpc"
+}
+
 resource "aws_nat_gateway" "nat" {
   allocation_id = aws_eip.nat.id
   subnet_id     = aws_subnet.public[0].id
+  depends_on    = [aws_internet_gateway.igw]
 }
 
-resource "aws_eip" "nat" { domain = "vpc" }
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.eks.id
+}
 
-# EKS Cluster
-resource "aws_eks_cluster" "main" {
-  name     = "${var.cluster_name}-${random_id.suffix.hex}"
-  role_arn = aws_iam_role.eks_cluster.arn
-  version  = var.cluster_version
-
-  vpc_config {
-    subnet_ids              = aws_subnet.private[*].id
-    security_group_ids      = [aws_security_group.eks_cluster.id]
-    endpoint_private_access = true
-    endpoint_public_access  = true
-    public_access_cidrs     = ["0.0.0.0/0"]
+# Public Route Table
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.eks.id
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
   }
-
-  depends_on = [
-    aws_iam_role_policy_attachment.eks_cluster_policy,
-  ]
-
-  enabled_cluster_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
 }
 
-# EKS IAM Role + OIDC (IRSA)
+resource "aws_route_table_association" "public" {
+  count          = length(aws_subnet.public[*])
+  subnet_id      = aws_subnet.public[count.index].id
+  route_table_id = aws_route_table.public.id
+}
+
+# Private Route Table
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.eks.id
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.nat.id
+  }
+}
+
+resource "aws_route_table_association" "private" {
+  count          = length(aws_subnet.private[*])
+  subnet_id      = aws_subnet.private[count.index].id
+  route_table_id = aws_route_table.private.id
+}
+```
+
+### **iam.tf** *(IRSA + EKS Roles)*
+```hcl
+# EKS Cluster IAM Role
 resource "aws_iam_role" "eks_cluster" {
-  name = "${var.cluster_name}-cluster-role"
+  name = "${var.cluster_name}-cluster-${random_id.cluster.hex}"
+  
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
       Action = "sts:AssumeRole"
       Effect = "Allow"
-      Principal = { Service = "eks.amazonaws.com" }
+      Principal = {
+        Service = "eks.amazonaws.com"
+      }
     }]
   })
 }
@@ -222,15 +284,18 @@ resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
   role       = aws_iam_role.eks_cluster.name
 }
 
-# Node Group IAM Role
+# EKS Node Group IAM Role
 resource "aws_iam_role" "eks_nodes" {
-  name = "${var.cluster_name}-node-role"
+  name = "${var.cluster_name}-nodegroup-${random_id.cluster.hex}"
+  
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Action = "sts:Associate"
+      Action = "sts:AssumeRole"
       Effect = "Allow"
-      Principal = { Service = "ec2.amazonaws.com" }
+      Principal = {
+        Service = "ec2.amazonaws.com"
+      }
     }]
   })
 }
@@ -249,38 +314,48 @@ resource "aws_iam_role_policy_attachment" "eks_container_registry_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
   role       = aws_iam_role.eks_nodes.name
 }
+```
 
-# EKS Node Group (Self-managed)
-resource "aws_eks_node_group" "private_nodes" {
-  cluster_name    = aws_eks_cluster.main.name
-  node_group_name = "private-nodes"
-  node_role_arn   = aws_iam_role.eks_nodes.arn
-  subnet_ids      = aws_subnet.private[*].id
+### **eks.tf** *(EKS Cluster + Nodes)*
+```hcl
+# EKS Cluster (Private API Endpoint)
+resource "aws_eks_cluster" "main" {
+  name     = "${var.cluster_name}-${random_id.cluster.hex}"
+  role_arn = aws_iam_role.eks_cluster.arn
+  version  = var.cluster_version
 
-  instance_types = ["t3.small"]
-  scaling_config {
-    desired_size = 2
-    max_size     = 4
-    min_size     = 2
+  vpc_config {
+    subnet_ids             = aws_subnet.private[*].id
+    security_group_ids     = [aws_security_group.eks_cluster.id]
+    endpoint_private_access = true
+    endpoint_public_access = true
+    public_access_cidrs    = ["0.0.0.0/0"]
   }
 
+  enabled_cluster_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
+
   depends_on = [
-    aws_iam_role_policy_attachment.eks_worker_node_policy,
-    aws_iam_role_policy_attachment.eks_cni_policy,
-    aws_iam_role_policy_attachment.eks_container_registry_policy,
+    aws_iam_role_policy_attachment.eks_cluster_policy,
   ]
 }
 
-# Security Groups
+# OIDC Provider for IRSA
+resource "aws_iam_openid_connect_provider" "eks" {
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = ["9e99a48a9960b14926bb7f3b02e22da2b0ab7280"]
+  url             = aws_eks_cluster.main.identity[0].oidc[0].issuer
+}
+
+# EKS Security Group
 resource "aws_security_group" "eks_cluster" {
   name_prefix = "${var.cluster_name}-cluster"
   vpc_id      = aws_vpc.eks.id
 
   ingress {
-    from_port = 443
-    to_port   = 443
-    protocol  = "tcp"
-    cidr_blocks = aws_subnet.private[*].cidr_block
+    from_port       = 443
+    to_port         = 443
+    protocol        = "tcp"
+    security_groups = [aws_security_group.eks_nodes.id]
   }
 
   egress {
@@ -290,65 +365,89 @@ resource "aws_security_group" "eks_cluster" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
-```
 
-### **addons.tf** *(EKS Add-ons)*
-```hcl
-# EBS CSI Driver (Persistent Storage)
-resource "aws_eks_addon" "ebs_csi" {
-  cluster_name = aws_eks_cluster.main.name
-  addon_name   = "aws-ebs-csi-driver"
+# Node Security Group
+resource "aws_security_group" "eks_nodes" {
+  name_prefix = "${var.cluster_name}-node"
+  vpc_id      = aws_vpc.eks.id
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.eks.cidr_block]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
-# VPC CNI (Networking)
-resource "aws_eks_addon" "vpc_cni" {
-  cluster_name = aws_eks_cluster.main.name
-  addon_name   = "vpc-cni"
-}
+# Managed Node Group
+resource "aws_eks_node_group" "private" {
+  cluster_name    = aws_eks_cluster.main.name
+  node_group_name = "private-nodes"
+  node_role_arn   = aws_iam_role.eks_nodes.arn
+  subnet_ids      = aws_subnet.private[*].id
 
-# CoreDNS
-resource "aws_eks_addon" "coredns" {
-  cluster_name = aws_eks_cluster.main.name
-  addon_name   = "coredns"
-}
+  instance_types = ["t3.small"]
+  
+  scaling_config {
+    desired_size = 2
+    max_size     = 4
+    min_size     = 2
+  }
 
-# kube-proxy
-resource "aws_eks_addon" "kube_proxy" {
-  cluster_name = aws_eks_cluster.main.name
-  addon_name   = "kube-proxy"
+  update_config {
+    max_unavailable = 1
+  }
+
+  depends_on = [
+    aws_iam_role_policy_attachment.eks_worker_node_policy,
+    aws_iam_role_policy_attachment.eks_cni_policy,
+    aws_iam_role_policy_attachment.eks_container_registry_policy,
+  ]
 }
 ```
 
 ### **outputs.tf**
 ```hcl
 output "cluster_name" {
-  value = aws_eks_cluster.main.name
+  description = "EKS cluster name"
+  value       = aws_eks_cluster.main.name
 }
 
 output "cluster_endpoint" {
-  value = aws_eks_cluster.main.endpoint
-}
-
-output "cluster_ca_certificate" {
-  value = aws_eks_cluster.main.certificate_authority[0].data
+  description = "Cluster API endpoint"
+  value       = aws_eks_cluster.main.endpoint
 }
 
 output "configure_kubectl" {
-  description = "kubectl config command"
-  value = "aws eks update-kubeconfig --name ${aws_eks_cluster.main.name} --region us-east-1"
+  description = "Run to connect kubectl"
+  value       = "aws eks update-kubeconfig --name ${aws_eks_cluster.main.name} --region us-east-1"
 }
 
-output "vpc_id" {
-  value = aws_vpc.eks.id
+output "oidc_provider" {
+  description = "OIDC Provider URL"
+  value       = aws_iam_openid_connect_provider.eks.url
 }
 ```
 
-### **samples/nginx-deployment.yaml**
+### **samples/nginx-app.yaml**
 ```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx-demo
+  namespace: demo
 spec:
   replicas: 3
   selector:
@@ -361,7 +460,7 @@ spec:
     spec:
       containers:
       - name: nginx
-        image: nginx:1.25
+        image: nginx:1.25-alpine
         ports:
         - containerPort: 80
 ---
@@ -369,6 +468,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: nginx-service
+  namespace: demo
 spec:
   selector:
     app: nginx
@@ -378,75 +478,73 @@ spec:
   type: LoadBalancer
 ```
 
-## 🎓 Core Concepts Learned
+## 🎓 **Core Terraform Concepts**
 
-| Concept | Used In | Interview Value |
-|---------|---------|----------------|
-| **`aws_eks_cluster`** | Control plane | Managed K8s |
-| **IRSA (OIDC)** | Service accounts | Pod identity |
-| **Node Groups** | Worker scaling | Capacity management |
-| **EKS Add-ons** | CSI, CNI, DNS | Day-2 operations |
-| **`terraform providers`** | kubernetes, helm | K8s resource mgmt |
+| Concept | Usage | Why Important |
+|---------|--------|---------------|
+| **`cidrsubnet()`** | Subnet calculation | Dynamic CIDR blocks |
+| **OIDC Provider** | IRSA setup | Pod-level IAM |
+| **`depends_on`** | Resource ordering | Deployment safety |
+| **Multiple files** | `main.tf`, `iam.tf` | Code organization |
+| **EKS Add-ons** | Day 2 operations | Managed components |
 
-## 💬 Interview Questions
+## 💬 **Interview Questions**
 
 ```
-🔥 Q1: EKS vs EKS Fargate?
-A: EKS = managed control plane. Fargate = serverless pods.
+🔥 Q1: Why private API endpoint?
+A: Security - Control plane not internet-facing. VPN/Bastion access only.
 
-🔥 Q2: IRSA vs Instance Roles?
-A: IRSA = per-pod IAM (secure). Instance = node-level (broad).
+🔥 Q2: EKS Node Group vs Self-Managed?
+A: Node Group = Managed ASG. Self-Managed = Full EC2 control.
 
-🔥 Q3: VPC CNI vs Calico?
-A: VPC CNI = ENI-based (native). Calico = overlay (multi-cluster).
+🔥 Q3: IRSA vs Node IAM Role?
+A: IRSA = Per-pod permissions (secure). Node role = All pods share.
 ```
 
-## 🧪 Testing Your Deployment
+## 🧪 **Post-Deployment Testing**
 
 ```bash
-# Update kubeconfig
-eval $(terraform output configure_kubectl)
+# 1. Connect to cluster
+$(terraform output configure_kubectl)
 
-# Verify cluster
-kubectl get nodes
-kubectl get pods -A
+# 2. Verify nodes ready
+kubectl get nodes -o wide
+kubectl get pods -A -o wide
 
-# Deploy sample app
-kubectl apply -f samples/
+# 3. Deploy demo app
+kubectl apply -f samples/nginx-app.yaml
 
-# Get external IP
-kubectl get svc nginx-service
+# 4. Get LoadBalancer IP
+kubectl get svc -n demo nginx-service
 
-# Test app
-curl <EXTERNAL-IP>
+# 5. Test application
+curl http://<EXTERNAL-IP>
 ```
 
-**Expected Results:**
-```
-$ kubectl get nodes
-NAME                           STATUS   ROLES    AGE   VERSION
-ip-10-20-110-10.ec2.internal   Ready    <none>   5m    v1.30.0
-ip-10-20-111-20.ec2.internal   Ready    <none>   5m    v1.30.0
-```
-
-## 🧹 Clean Up
+## 🧹 **Clean Up** *(Important!)*
 
 ```bash
-# Delete K8s resources first
-kubectl delete -f samples/
+# 1. Delete Kubernetes resources
+kubectl delete namespace demo --ignore-not-found
+
+# 2. Delete EKS resources
+aws eks delete-nodegroup --cluster-name $(terraform output cluster_name) --nodegroup-name private-nodes
 aws eks delete-cluster --name $(terraform output cluster_name)
+
+# 3. Terraform cleanup
 terraform destroy -auto-approve
 ```
 
-## 🎓 Next Steps
-- **Project 13:** ECS Fargate + ALB
-- **Practice:** Helm charts, HPA, Ingress
-- **Advanced:** Karpenter, Cluster Autoscaler
+## 🎓 **Next Steps**
+- **Project 13:** ECS Fargate Service
+- **Advanced:** Helm provider, EKS + ALB Ingress
+- **Production:** Karpenter auto-scaling, EBS encryption
 
 ***
 
 **⭐ Star: https://github.com/Chinthaparthy-UmasankarReddy/Terraform-30-projects**  
-**☸️ Cluster: `$(terraform output configure_kubectl)`**
+**☸️ Deploy: `terraform apply && aws eks update-kubeconfig`**  
+
 
 *Updated: Jan 2026* 
 
