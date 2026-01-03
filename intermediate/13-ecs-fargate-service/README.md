@@ -1,10 +1,11 @@
 
 # Terraform Project 13: ECS Fargate + ALB (AWS)
 
-[
-[
-[
-[
+[![Project-13](https://img.shields.io/badge/Project_13-ECS_Fargate-1E90FF?style=for-the-badge&logo=amazon-ecs&logoColor=white)](projects/intermediate/13-ecs-fargate/)
+[![Serverless](https://img.shields.io/badge/Serverless-Fargate-00D4AA?style=for-the-badge&logo=amazon-aws&logoColor=white)](https://aws.amazon.com/fargate/)
+[![awsvpc](https://img.shields.io/badge/awsvpc_Mode-Private_Subnets-228B22?style=for-the-badge&logo=amazon-aws&logoColor=white)](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-task-networking.html)
+[![ALB](https://img.shields.io/badge/ALB-Integrated-FF4500?style=for-the-badge&logo=amazon-aws&logoColor=white)](https://aws.amazon.com/elasticloadbalancing/)
+
 
 ## 🎯 Project Overview
 
@@ -530,6 +531,7 @@ terraform destroy -auto-approve
 **🌐 Live App: `curl $(terraform output alb_dns_name)`**
 
 *Updated: Jan 2026* 
+
 
 
 
