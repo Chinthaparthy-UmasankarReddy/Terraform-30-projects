@@ -1,442 +1,221 @@
 
-# Terraform Project 14: Multi-Region S3 + CloudFront CDN (AWS)
+# **COMPLETE README.md for Project-14: OpenStack Instances**
 
-[
-[
-[
-[
+```markdown
+[![Terraform](https://img.shields.io/badge/Terraform-5C3EE8?style=for-the-badge&logo=terraform&logoColor=white)](https://www.terraform.io/)
+[![OpenStack](https://img.shields.io/badge/OpenStack-Instances-F17D20?style=for-the-badge&logo=openstack&logoColor=white)](https://www.openstack.org/)
+[![Intermediate](https://img.shields.io/badge/Level-Intermediate-FF8C00?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUyIiBoZWlnaHQ9IjE2MCIgdmlld0JveD0iMCAwIDE1MiAxNjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTIiIGhlaWdodD0iMTYwIiBmaWxsPSIjRkY4QzAwIi8+Cjwvc3ZnPgo=)](../)
+[![Project-14](https://img.shields.io/badge/Project_14-OpenStack_Instances-F17D20?style=for-the-badge&logo=server&logoColor=white)](.)
 
-## 🎯 Project Overview
+<div align="center">
 
-**Level:** 🟡 **Intermediate (Project #14/30)**  
-**Estimated Time:** 35 minutes  
-**Cost:** ~$0.01/month + **$0.085/GB transferred** (Free tier: 1TB/month)  
-**Real-World Use Case:** Static websites, asset delivery, global CDN, disaster recovery
+# 🚀 Terraform Project 14: OpenStack Instances
 
-This project creates a **global multi-region CDN architecture** with:
-- **3 S3 Buckets** across **us-east-1, us-west-2, eu-west-1**
-- **CloudFront CDN** with **Origin Failover**
-- **Custom Domain + SSL** (CloudFront certificate)
-- **WAF Protection** + **Lambda@Edge** caching
-- **CloudFront Functions** for header manipulation
-- **S3 Replication** (CRR) between regions
-- **Production monitoring** + **invalidations**
+**Level:** 🟡 **Intermediate** | **Project #14/30**  
+**Status:** 🟢 **Production Ready**  
+**Time:** 40 mins | **Cost:** ~$0.05/hour | **Cloud:** OpenStack
 
-## 📋 Table of Contents
-- [Features](#features)
-- [Architecture](#architecture)
-- [Prerequisites](#prerequisites)
-- [Quick Start](#quick-start)
-- [File Structure](#file-structure)
-- [Complete Code](#complete-code)
-- [Core Concepts](#core-concepts)
-- [Interview Questions](#interview-questions)
-- [Testing](#testing)
-- [Clean Up](#clean-up)
+</div>
 
-## ✨ Features
+## 🎯 **Project Overview**
 
-| Feature | Implemented | Terraform Resource |
-|---------|-------------|-------------------|
-| **Multi-Region S3** | ✅ | `aws_s3_bucket` (3 regions) |
-| **CloudFront OAC** | ✅ | Origin Access Control |
-| **Origin Failover** | ✅ | Primary + Secondary origins |
-| **Global SSL Cert** | ✅ | `aws_acm_certificate` |
-| **S3 CRR** | ✅ | Cross-Region Replication |
-| **WAF Web ACL** | ✅ | Rate limiting + Geo-blocking |
-| **Lambda@Edge** | ✅ | Custom caching logic |
+This project demonstrates **production-grade OpenStack instance management** using Terraform's `openstack` provider:
 
-## 🏗️ Global CDN Architecture
+- **Multiple VM Instances** across **availability zones**
+- **Auto-scaling groups** with **heat stacks**
+- **Floating IP assignment** + **security groups**
+- **Volume attachments** (block storage)
+- **Load balancer** (Octavia/HAProxy)
+- **Complete networking** (Neutron networks/ports)
 
-```mermaid
-graph TB
-    A[Global Users] --> B[CloudFront Edge<br/>200+ POPs]
-    B --> C[Primary Origin<br/>S3 us-east-1]
-    B --> D[Failover Origin<br/>S3 us-west-2]
-    C --> E[S3 Primary Bucket<br/>website.example.com]
-    D --> F[S3 Failover Bucket<br/>website-dr.example.com]
-    E <--> G[S3 CRR<br/>Cross-Region Replication]
-    F <--> G
-    B --> H[WAF + Lambda@Edge<br/>Security + Optimization]
-    
-    style B fill:#e3f2fd
-    style C fill:#f3e5f5
-```
+**Real-world use case:** Private cloud deployments, hybrid cloud, OpenStack enterprise environments.
 
-## 🛠️ Prerequisites
+## 📊 **Quick Stats**
+
+| Category | Details |
+|----------|---------|
+| **Infrastructure** | 3x Compute Instances + Load Balancer |
+| **Networking** | Neutron Networks + Floating IPs |
+| **Storage** | Cinder Volumes + Attachments |
+| **Scaling** | Heat Auto-scaling Groups |
+| **Access** | SSH Keypairs + Security Groups |
+
+## 🚀 **Quick Start**
 
 ```bash
-# AWS CLI + Terraform (Projects 1-13)
-aws cloudfront list-distributions
+# 1. OpenStack CLI setup
+openstack token issue
+export OS_AUTH_URL=[your-openstack-rc]
 
-# Route 53 Hosted Zone (optional)
-# IAM permissions: s3:*, cloudfront:*, route53:*, acm:*, wafv2:*
-```
-
-## 🚀 Quick Start
-
-```bash
-cd Terraform-30-projects/projects/intermediate/14-multi-region-s3-cloudfront
-
+# 2. Deploy instances
+cd projects/intermediate/14-openstack-instances
 terraform init
 terraform plan
 terraform apply
 
-# Test CDN instantly
-curl $(terraform output.cloudfront_domain)
+# 3. Access instances
+ssh -i $(terraform output private_key_path) ubuntu@$(terraform output floating_ip_1)
+
+# 4. Verify load balancer
+curl $(terraform output load_balancer_ip)
 ```
 
-## 📁 File Structure
+## 📁 **File Structure**
 
 ```
-14-multi-region-s3-cloudfront/
-├── main.tf                   # Multi-region S3 + CloudFront
-├── providers.tf              # Multi-region providers
-├── waf.tf                    # Web Application Firewall
-├── replication.tf            # S3 CRR configuration
-├── website-files/            # Static website content
-│   ├── index.html
-│   └── assets/
-├── lambda-edge/              # Lambda@Edge functions
-├── variables.tf
-├── outputs.tf
+14-openstack-instances/
+├── main.tf              # Instances + Networking + LB
+├── variables.tf         # OpenStack credentials + sizing
+├── outputs.tf           # IPs, endpoints, connection details
+├── security.tf          # Security groups + keypairs
+├── storage.tf           # Cinder volumes
+├── autoscaling.tf       # Heat stacks
 ├── versions.tf
-└── terraform.tfvars.example
+├── openstack.rc         # OpenStack environment vars
+└── user-data/           
+    ├── cloud-init.yaml
+    └── bootstrap.sh
 ```
 
-## 💻 Complete Code *(Production Ready)*
+## ✨ **Features Implemented**
 
-### **providers.tf** *(Multi-Region)*
-```hcl
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.40"
-    }
-  }
-}
-
-# Primary Region (us-east-1 required for CloudFront)
-provider "aws" {
-  alias  = "us_east_1"
-  region = "us-east-1"
-}
-
-# Secondary Regions
-provider "aws" {
-  alias  = "us_west_2"
-  region = "us-west-2"
-}
-
-provider "aws" {
-  alias  = "eu_west_1"
-  region = "eu-west-1"
-}
+```markdown
+✅ 3x Multi-AZ Compute Instances (m1.medium)
+✅ Floating IP Assignment + DNS Records
+✅ Security Groups (HTTP/SSH/ICMP)
+✅ Cinder Block Storage (20GB volumes)
+✅ Octavia Load Balancer (HAProxy)
+✅ Heat Auto-scaling Groups
+✅ Cloud-Init User Data
+✅ SSH Keypair Management
+✅ Neutron Networking (Provider/Internal)
 ```
 
-### **variables.tf**
-```hcl
-variable "environment" { default = "prod" }
-variable "domain_name" { default = "tf-project14.example.com" }
-variable "random_suffix" { type = string }
-```
+## 🏗️ **Architecture**
 
-### **main.tf** *(Multi-Region S3 + CloudFront)*
-```hcl
-# Random suffix for uniqueness
-resource "random_id" "suffix" {
-  byte_length = 4
-}
-
-# === PRIMARY S3 BUCKET (us-east-1) ===
-resource "aws_s3_bucket" "primary" {
-  provider = aws.us_east_1
-  bucket   = "tf-project14-primary-${random_id.suffix.hex}"
-}
-
-resource "aws_s3_bucket_website_configuration" "primary" {
-  provider                      = aws.us_east_1
-  bucket                        = aws_s3_bucket.primary.id
-  index_document {
-    suffix = "index.html"
-  }
-  error_document {
-    key = "error.html"
-  }
-}
-
-# === FAILOVER S3 BUCKET (us-west-2) ===
-resource "aws_s3_bucket" "failover" {
-  provider = aws.us_west_2
-  bucket   = "tf-project14-failover-${random_id.suffix.hex}"
-}
-
-resource "aws_s3_bucket_website_configuration" "failover" {
-  provider                      = aws.us_west_2
-  bucket                        = aws_s3_bucket.failover.id
-  index_document {
-    suffix = "index.html"
-  }
-}
-
-# === CLOUDWATCH LOGGING ===
-resource "aws_s3_bucket" "cloudfront_logs" {
-  provider = aws.us_east_1
-  bucket   = "tf-project14-cloudfront-logs-${random_id.suffix.hex}"
-}
-
-# === CLOUDFRONT DISTRIBUTION ===
-resource "aws_cloudfront_origin_access_control" "oac" {
-  provider            = aws.us_east_1
-  name                = "tf-project14-oac"
-  description         = "OAC for S3 website"
-  origin_access_control_origin_type = "s3"
-  signing_behavior    = "always"
-  signing_protocol    = "sigv4"
-}
-
-resource "aws_cloudfront_distribution" "main" {
-  provider    = aws.us_east_1
-  enabled     = true
-  is_ipv6_enabled = true
-  comment     = "Terraform Project 14 Multi-Region CDN"
-  
-  # Primary Origin (us-east-1)
-  origin {
-    domain_name              = aws_s3_bucket.primary.bucket_regional_domain_name
-    origin_id                = "primary-s3-us-east-1"
-    origin_access_control_id = aws_cloudfront_origin_access_control.oac.id
-  }
-  
-  # Failover Origin (us-west-2)
-  origin {
-    domain_name = aws_s3_bucket.failover.bucket_regional_domain_name
-    origin_id   = "failover-s3-us-west-2"
-  }
-
-  # Default Cache Behavior
-  default_cache_behavior {
-    allowed_methods        = ["GET", "HEAD"]
-    cached_methods         = ["GET", "HEAD"]
-    target_origin_id       = "primary-s3-us-east-1"
-    compress               = true
-    viewer_protocol_policy = "redirect-to-https"
-
-    forwarded_values {
-      query_string = false
-      cookies {
-        forward = "none"
-      }
-    }
-
-    min_ttl     = 0
-    default_ttl = 3600
-    max_ttl     = 86400
-  }
-
-  # Origin Failover (Custom)
-  custom_origin_config {
-    origin_protocol_policy = "http-only"
-    http_port              = 80
-    https_port             = 443
-    origin_ssl_protocols   = ["TLSv1.2"]
-  }
-
-  # Price Class (Global)
-  price_class = "PriceClass_100"  # US/Europe/Japan
-
-  # Viewer Certificate (SSL)
-  viewer_certificate {
-    cloudfront_default_certificate = true
-  }
-
-  # Logging
-  logging_config {
-    include_cookies = false
-    bucket          = aws_s3_bucket.cloudfront_logs.bucket_domain_name
-    prefix          = "cloudfront-logs/"
-  }
-
-  restrictions {
-    geo_restriction {
-      restriction_type = "none"
-    }
-  }
-
-  tags = {
-    Environment = var.environment
-    Project     = "Terraform-30-Projects"
-  }
-
-  depends_on = [aws_s3_bucket_policy.primary]
-}
-
-# === S3 BUCKET POLICIES ===
-resource "aws_s3_bucket_policy" "primary" {
-  provider = aws.us_east_1
-  bucket   = aws_s3_bucket.primary.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Sid    = "AllowCloudFront"
-      Effect = "Allow"
-      Principal = {
-        Service = "cloudfront.amazonaws.com"
-      }
-      Action   = "s3:GetObject"
-      Resource = "${aws_s3_bucket.primary.arn}/*"
-      Condition = {
-        StringEquals = {
-          "AWS:SourceArn" = aws_cloudfront_distribution.main.arn
-        }
-      }
-    }]
-  })
-}
-
-# === WEBSITE FILES ===
-resource "aws_s3_object" "index_primary" {
-  provider = aws.us_east_1
-  bucket   = aws_s3_bucket.primary.id
-  key      = "index.html"
-  source   = "${path.module}/website-files/index.html"
-  content_type = "text/html"
-}
-
-resource "aws_s3_object" "index_failover" {
-  provider = aws.us_west_2
-  bucket   = aws_s3_bucket.failover.id
-  key      = "index.html"
-  source   = "${path.module}/website-files/index.html"
-  content_type = "text/html"
-}
-```
-
-### **website-files/index.html**
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Terraform Project 14 - Multi-Region CDN</title>
-  <style>
-    body { font-family: Arial; margin: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-    .container { max-width: 800px; margin: 0 auto; text-align: center; }
-    h1 { font-size: 3em; margin-bottom: 20px; }
-    .region { background: rgba(255,255,255,0.1); padding: 20px; margin: 20px; border-radius: 10px; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>🌍 Global CDN Deployed Successfully!</h1>
-    <p><strong>CloudFront Distribution:</strong> $(terraform output cloudfront_domain)</p>
+```mermaid
+graph TB
+    A[Users] --> B[Floating IPs]
+    B --> C[Octavia Load Balancer]
+    C --> D[Instance 1<br/>m1.medium + 20GB]
+    C --> E[Instance 2<br/>m1.medium + 20GB] 
+    C --> F[Instance 3<br/>m1.medium + 20GB]
+    D --> G[Neutron Network<br/>Internal + External]
+    E --> G
+    F --> G
+    G --> H[Provider Network<br/>External Access]
     
-    <div class="region">
-      <h2>🇺🇸 Primary Origin</h2>
-      <p>S3 Bucket: us-east-1</p>
-    </div>
-    
-    <div class="region">
-      <h2>🇺🇸 Failover Origin</h2>
-      <p>S3 Bucket: us-west-2 (DR)</p>
-    </div>
-    
-    <p><em>Terraform Project 14 • Multi-Region + CloudFront CDN</em></p>
-  </div>
-</body>
-</html>
+    style C fill:#e3f2fd
+    style D fill:#f3e5f5
 ```
 
-### **outputs.tf**
-```hcl
-output "cloudfront_domain" {
-  description = "CloudFront distribution domain"
-  value       = aws_cloudfront_distribution.main.domain_name
-}
+## 💻 **Core Terraform Resources**
 
-output "primary_bucket_name" {
-  value = aws_s3_bucket.primary.id
-}
+| Resource | Purpose |
+|----------|---------|
+| `openstack_compute_instance_v2` | VM instances |
+| `openstack_networking_floatingip_v2` | Public IPs |
+| `openstack_lb_loadbalancer_v2` | Octavia LB |
+| `openstack_blockstorage_volume_v3` | Persistent storage |
+| `openstack_compute_volume_attach_v2` | Volume mounting |
+| `openstack_compute_keypair_v2` | SSH access |
 
-output "failover_bucket_name" {
-  value = aws_s3_bucket.failover.id
-}
-
-output "distribution_id" {
-  value = aws_cloudfront_distribution.main.id
-}
-```
-
-## 🎓 Core Concepts Learned
-
-| Concept | Used In | Interview Value |
-|---------|---------|----------------|
-| **Multi-Region Providers** | `provider "aws" { alias = "..." }` | Global architecture |
-| **Origin Access Control** | `aws_cloudfront_origin_access_control` | Secure S3 access |
-| **Origin Failover** | Multiple `origin` blocks | High availability |
-| **CloudFront Functions** | Edge computing | Performance optimization |
-| **`cidrsubnet()`** | Dynamic subnet calc | Network automation |
-
-## 💬 Interview Questions
-
-```
-🔥 Q1: CloudFront OAI vs OAC?
-A: OAI = Legacy (RSA). OAC = Modern (SigV4, better security).
-
-🔥 Q2: PriceClass_100 vs All?
-A: PriceClass_100 = US/EU/JP (90% traffic). All = Global (expensive).
-
-🔥 Q3: Primary vs Failover origin?
-A: Primary = normal path. Failover = 5xx errors only.
-```
-
-## 🧪 Testing Your Deployment
+## 🧪 **Verification Steps**
 
 ```bash
-# Get CDN URL
-CF_DOMAIN=$(terraform output -raw cloudfront_domain)
+# 1. Check instances status
+openstack server list
+terraform output instance_ips
 
-# Test CDN
-curl -I $CF_DOMAIN
-curl $CF_DOMAIN
+# 2. Test load balancer
+curl -I $(terraform output load_balancer_ip)
 
-# Test from different regions
-curl -H "CloudFront-Forwarded-Proto: https" $CF_DOMAIN
+# 3. Verify volumes
+openstack volume list
+openstack server show $(terraform output instance_1_id)
 
-# Invalidate cache (optional)
-aws cloudfront create-invalidation --distribution-id $(terraform output distribution_id) --paths "/*"
+# Expected: All instances ACTIVE, LB healthy
 ```
 
-**Expected Results:**
-```
-$ curl http://d1234567890.cloudfront.net
-<h1>🌍 Global CDN Deployed Successfully!</h1>
-X-Cache: Hit from cloudfront
-```
+## 📈 **Cost Breakdown**
 
-## 🧹 Clean Up
+| Resource | Quantity | Hourly Cost | Monthly |
+|----------|----------|-------------|---------|
+| Compute (m1.medium) | 3 | $0.03 | $21.60 |
+| Block Storage | 60GB | $0.01 | $4.32 |
+| Load Balancer | 1 | $0.005 | $3.60 |
+| Floating IPs | 3 | $0.001 | $0.72 |
+| **Total** | | **$0.05** | **$30.24** |
+
+## 🔧 **Prerequisites**
 
 ```bash
-# Wait for CloudFront to propagate (15min), then:
+# OpenStack CLI
+pip install python-openstackclient
+
+# Terraform OpenStack Provider
+terraform init  # Downloads automatically
+
+# Environment (copy openstack.rc)
+source openstack.rc
+openstack server list  # Test connection
+```
+
+## 🎓 **Key Learning Outcomes**
+
+```
+🔥 OpenStack Provider Configuration
+🔥 Multi-AZ Instance Deployments
+🔥 Floating IP + Load Balancer Integration
+🔥 Block Storage + Volume Attachment
+🔥 Heat Autoscaling Groups
+🔥 Neutron Networking Mastery
+🔥 Cloud-Init Automation
+```
+
+## 💬 **Interview Questions Answered**
+
+```
+Q: How do you manage private clouds with Terraform?
+A: Using openstack_compute_instance_v2 with neutron networking + cinder storage
+
+Q: Explain OpenStack Floating IPs vs Direct IPs?
+A: Floating = Public, portable across instances. Direct = Private, instance-bound.
+
+Q: Heat vs ASG in OpenStack?
+A: Heat = Native OpenStack orchestration. ASG = Instance lifecycle management.
+```
+
+## 🧹 **Clean Up**
+
+```bash
+# Destroy everything
 terraform destroy -auto-approve
 
-# Manual cleanup if needed
-aws cloudfront delete-distribution --id $(terraform output distribution_id) --if-match E123
+# Manual verification
+openstack server list --all-projects
+openstack volume list --all-projects
 ```
 
-## 🎓 Next Steps
-- **Project 15:** Multi-Cloud Databases (Aurora Global)
-- **Practice:** Custom domain + Route53
-- **Advanced:** Lambda@Edge A/B testing, Field-Level Encryption
+## 🔗 **Related Projects**
 
-***
+| Previous | This Project | Next |
+|----------|--------------|------|
+| [13. ECS Fargate] | **14. OpenStack Instances** | [15. ???] |
 
-**⭐ Star: https://github.com/Chinthaparthy-UmasankarReddy/Terraform-30-projects**  
-**🌐 Live CDN: `$(terraform output cloudfront_domain)`**
+## 📚 **Further Reading**
 
-*Updated: Jan 2026* 
+- [Terraform OpenStack Provider](https://registry.terraform.io/providers/terraform-provider-openstack/openstack/latest)
+- [OpenStack Heat Documentation](https://docs.openstack.org/heat/latest/)
+- [Octavia Load Balancer Guide](https://docs.openstack.org/octavia/latest/)
 
+---
 
+<div align="center">
 
+**⭐ Star:** https://github.com/Chinthaparthy-UmasankarReddy/Terraform-30-projects  
+**📁 Folder:** `projects/intermediate/14-openstack-instances`  
+**🌐 Load Balancer:** `$(terraform output load_balancer_ip)`  
+**✅ Status:** Production Ready | **📅 Updated:** Jan 2026
 
+</div>
