@@ -1,8 +1,10 @@
+
 # Terraform Project 6: Lambda Function + API Gateway
 
-[
-[
-[
+[![Project-6](https://img.shields.io/badge/Project_6-Lambda_API-FF9900?style=for-the-badge&logo=aws-lambda&logoColor=white)](projects/beginner/06-lambda-api-gateway/)
+[![Serverless](https://img.shields.io/badge/Serverless-%240.001%2F1M-brightgreen?style=for-the-badge&logo=aws-lambda&logoColor=white)](projects/beginner/06-lambda-api-gateway/)
+[![Time](https://img.shields.io/badge/Time-40min-blue?style=flat&logo=clock&logoColor=white)](projects/beginner/06-lambda-api-gateway/)
+
 
 ## 🎯 Project Overview
 
@@ -534,3 +536,4 @@ MIT License - Free for learning/portfolio
 **🧪 Test: `curl $(terraform output api_url)/hello`**
 
 *Updated: Jan 2026* 
+
