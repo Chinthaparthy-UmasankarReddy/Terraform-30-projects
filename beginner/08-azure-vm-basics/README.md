@@ -1,8 +1,10 @@
 
 # Terraform Project 8: Azure Linux VM Basics
 
-[
-[
+[![Project-8](https://img.shields.io/badge/Project_8-Azure_VM-0078D4?style=for-the-badge&logo=microsoft-azure&logoColor=white)](projects/beginner/08-azure-linux-vm/)
+[![Cost](https://img.shields.io/badge/Cost-%240.015%2Fhr-green?style=flat&logo=microsoft-azure&logoColor=white)](projects/beginner/08-azure-linux-vm/)
+[![Time](https://img.shields.io/badge/Time-30min-blue?style=flat&logo=clock&logoColor=white)](projects/beginner/08-azure-linux-vm/)
+
 
 ## 🎯 Project Overview
 
@@ -476,6 +478,7 @@ MIT License - Free for learning/portfolio
 **🌐 Live Site: `http://$(terraform output dns_label)`**
 
 *Updated: Jan 2026* ✅ 
+
 
 
 
