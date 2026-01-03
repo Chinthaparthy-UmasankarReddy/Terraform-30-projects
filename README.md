@@ -99,6 +99,12 @@ terraform apply
 
 ## 📚 Learning Path
 
+<!-- Learning Track -->
+[![Track](https://img.shields.io/badge/Learning_Track-Beginner→Expert-6366F1?style=for-the-badge&logo=roadmap.sh&logoColor=white)](https://roadmap.sh/devops)
+[![Multi-Cloud](https://img.shields.io/badge/Multi_Cloud-AWS%20Azure%20GCP%20DO-E91E63?style=for-the-badge&logo=cloud&logoColor=white)](https://github.com/Chinthaparthy-UmasankarReddy/Terraform-30-projects)
+[![Hands-On](https://img.shields.io/badge/Hands_On-90%25_Practice-4CAF50?style=for-the-badge&logo=laptop&logoColor=white)](https://github.com/Chinthaparthy-UmasankarReddy/Terraform-30-projects)
+
+
 ```
 Beginner (1-10) → Basic Resources + Variables
      ↓
