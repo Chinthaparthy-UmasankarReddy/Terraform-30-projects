@@ -389,6 +389,51 @@ MIT License - Free for learning/portfolio
 *Updated: Jan 2026* 
 
 
+**Note**
+if you user above resource "aws_s3_bucket_lifecycle_configuration" "project_bucket_lifecycle" { }
+Incase Warning like these 
+###################################################################
+ Warning: Invalid Attribute Combination
+│ 
+│   with aws_s3_bucket_lifecycle_configuration.project_bucket_lifecycle,
+│   on main.tf line 31, in resource "aws_s3_bucket_lifecycle_configuration" "project_bucket_lifecycle":
+│   31: resource "aws_s3_bucket_lifecycle_configuration" "project_bucket_lifecycle" {
+│ 
+│ No attribute specified when one (and only one) of [rule[0].filter,rule[0].prefix] is required
+│ 
+│ This will be an error in a future version of the provider
+╵
+Success! The configuration is valid, but there were some validation warnings as shown above.
+##################################################################
+
+Use belwo code for quick fix
+
+...bash
+resource "aws_s3_bucket_lifecycle_configuration" "project_bucket_lifecycle" {
+  bucket = aws_s3_bucket.project_bucket.id
+
+  rule {
+    id     = "delete-after-30-days"
+    status = "Enabled"
+
+    filter {
+      prefix = ""  # Applies to all objects; use a specific path like "logs/" if needed
+    }
+
+    expiration {
+      days = 30
+    }
+  }
+}
+
+...
+Explnation:
 
 
+The Terraform warning "Invalid Attribute Combination" appears because the aws_s3_bucket_lifecycle_configuration resource requires each rule block to specify exactly one filter mechanism—either filter (with sub-attributes like prefix) or the legacy prefix directly—but the config in main.tf line 31 provides neither.​
+Root Cause
 
+In newer AWS provider versions (v5.90+), validation enforces that lifecycle rules cannot have empty filter {} blocks or omit filtering entirely, as this creates ambiguity about which objects the rule targets. Your repo's rule likely looks like rule { id = "..." status = "Enabled" expiration { days = 30 } } without a filter or prefix, triggering the check. It's a warning now but will error in future releases.​
+Why This Changed
+
+AWS lifecycle rules always needed scoping (e.g., prefix-based), but Terraform's provider recently added stricter schema validation to match AWS API expectations and prevent invalid plans. Empty rules previously "worked" by defaulting broadly but now fail validation.​
