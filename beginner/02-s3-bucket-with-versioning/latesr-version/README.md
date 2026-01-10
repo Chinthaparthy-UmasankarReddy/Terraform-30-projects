@@ -236,7 +236,7 @@ variable "aws_region" {
 variable "bucket_name" {
   description = "Unique S3 bucket name"
   type        = string
-  default     = "tf-project2-bucket-$(randomstring)"
+  default     = "tf-project2-bucket-1432a"
   
   validation {
     condition     = length(var.bucket_name) >= 3 && length(var.bucket_name) <= 63
@@ -483,6 +483,7 @@ MIT License - Free for learning/portfolio
 **🐛 Issues: [Create Issue](https://github.com/Chinthaparthy-UmasankarReddy/Terraform-30-projects/issues/new)**
 
 *Updated: Jan 2026* 
+
 
 
 
